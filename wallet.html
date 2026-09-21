@@ -282,7 +282,17 @@ document.getElementById('withdrawSubmitBtn').addEventListener('click', async (e)
     if (!userId) throw new Error('Missing your user ID — please reload the page and try again');
     await window.CPPay.withdraw({ userId, amountKobo: window.CPPay.nairaToKobo(amount) });
     alert('Withdrawal initiated — it should land in your bank shortly.'); closeModal('withdrawModal'); refreshWallet();
-  } catch (err) { alert(err.message || 'Withdrawal failed'); }
+  } catch (err) {
+    const raw = String((err && err.message) || '');
+    let msg = raw || 'Withdrawal failed';
+    if (/dormant|third party payouts/i.test(raw)) msg = 'Withdrawals are temporarily unavailable. Please try again later or contact support.';
+    else if (/insufficient/i.test(raw)) msg = 'Insufficient balance for this withdrawal.';
+    console.error('Withdraw error:', raw);
+    // Reset the button first: alert() blocks the UI, so doing it after would leave "Withdrawing…" showing behind the popup.
+    btn.disabled = false; btn.textContent = 'Withdraw';
+    alert(msg);
+    return;
+  }
   finally { btn.disabled = false; btn.textContent = 'Withdraw'; }
 });
 

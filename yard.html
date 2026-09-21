@@ -1161,6 +1161,124 @@ img { max-width: 100%; display: block; }
 .incoming-call .row { display: flex; gap: 60px; margin-top: 46px; }
 
 </style>
+<style id="yard-x">
+/* ===== The Yard v2 — X-style timeline (overrides the older post styles above) ===== */
+:root { --yx-line: rgba(255,255,255,0.09); --yx-hover: rgba(255,255,255,0.03); }
+
+.app-shell { max-width: 600px; border-left: 1px solid var(--yx-line); border-right: 1px solid var(--yx-line); }
+.cp-bottom-nav { max-width: 600px; }
+@media (max-width: 600px) { .app-shell { border-left: 0; border-right: 0; } }
+
+/* Header + tabs */
+.yx-header { position: sticky; top: 0; z-index: 20; background: rgba(9,7,20,.86); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border-bottom: 1px solid var(--yx-line); padding-top: var(--safe-top); }
+.yx-top { display: flex; align-items: center; gap: 12px; padding: 10px 16px 2px; }
+.yx-me { display: block; flex-shrink: 0; }
+.yx-me .avatar { width: 34px; height: 34px; font-size: 12px; }
+.yx-title { flex: 1; min-width: 0; }
+.yx-title h1 { font-size: 19px; font-weight: 800; letter-spacing: -.01em; line-height: 1.15; }
+.yx-title .brand-sub { font-size: 11.5px; color: var(--text3); margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.yx-tabs { display: flex; }
+.yx-tab { flex: 1; position: relative; background: none; border: 0; color: var(--text3); font-weight: 700; font-size: 14.5px; padding: 13px 4px 14px; cursor: pointer; transition: background .12s; }
+.yx-tab:hover { background: var(--yx-hover); }
+.yx-tab.active { color: var(--text); font-weight: 800; }
+.yx-tab.active::after { content: ''; position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); width: 56px; height: 4px; border-radius: 4px; background: var(--brand); }
+
+/* Composer row */
+.yx-composer { display: flex; gap: 12px; padding: 12px 16px 10px; border-bottom: 1px solid var(--yx-line); }
+.yx-composer .avatar { width: 44px; height: 44px; }
+.yx-composer-main { flex: 1; min-width: 0; }
+.yx-composer-input { display: block; width: 100%; text-align: left; background: none; border: 0; color: var(--text3); font: inherit; font-size: 18px; padding: 10px 0 14px; cursor: text; }
+.yx-composer-bar { display: flex; align-items: center; gap: 2px; border-top: 1px solid var(--yx-line); padding-top: 8px; }
+.yx-ic { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--brand); background: none; border: 0; cursor: pointer; text-decoration: none; }
+.yx-ic:hover { background: var(--brand-soft); }
+.yx-ic svg { width: 19px; height: 19px; }
+.yx-ic.sell { color: var(--money); }
+.yx-ic.sell:hover { background: rgba(52,211,153,.12); }
+.yx-post-btn { margin-left: auto; background: var(--brand-dark); color: #fff; border: 0; border-radius: 999px; padding: 8px 20px; font-weight: 800; font-size: 14px; cursor: pointer; }
+.yx-post-btn:hover { background: var(--brand); }
+
+/* Timeline rows */
+.yx-card { display: flex; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--yx-line); transition: background .12s; }
+.yx-card:hover { background: var(--yx-hover); }
+.yx-card .avatar { width: 44px; height: 44px; font-size: 14px; }
+.yx-av { display: block; flex-shrink: 0; height: 44px; }
+.post-header-row { display: flex; align-items: center; gap: 4px; flex-wrap: nowrap; min-width: 0; }
+.post-header-row .post-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 46%; font-size: 15px; }
+.post-header-row .post-handle { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex-shrink: 1; }
+.post-header-row .post-dot, .post-header-row .post-time { flex-shrink: 0; }
+.yx-badge { width: 16px; height: 16px; color: var(--brand); flex-shrink: 0; }
+.yx-more { margin-left: auto; flex-shrink: 0; width: 30px; height: 30px; margin-right: -6px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: none; border: 0; color: var(--text3); cursor: pointer; }
+.yx-more:hover { background: var(--brand-soft); color: var(--brand); }
+.yx-more svg { width: 18px; height: 18px; }
+.yx-eyebrow { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; color: var(--text3); margin-bottom: 3px; }
+.post-body { font-size: 15.5px; line-height: 1.4; }
+.post-media-wrap { border-radius: 16px; }
+.post-media-single img { max-height: 520px; }
+.post-actions { max-width: none; justify-content: space-between; margin: 8px 6px 0 -8px; }
+.post-action { transition: color .12s, background .12s; }
+.post-action .count:empty { display: none; }
+.post-action:hover { color: var(--brand); background: var(--brand-soft); }
+.post-action.repost-btn:hover { color: var(--money); background: rgba(52,211,153,.12); }
+.post-action.zap-btn:hover, .post-action.zap-btn.liked { color: var(--accent); background: var(--accent-soft); }
+.post-action.zap-btn.liked svg { fill: currentColor; }
+
+/* Official / pinned posts: quiet tint instead of a solid purple block */
+.post-card.pinned { background: rgba(167,139,250,.07); border-radius: 0; margin: 0; border: 0; border-bottom: 1px solid var(--yx-line); padding: 12px 16px; }
+.post-card.pinned .post-header-row .post-name { color: var(--text); }
+.post-card.pinned .post-header-row .post-handle,
+.post-card.pinned .post-header-row .post-dot,
+.post-card.pinned .post-header-row .post-time { color: var(--text3); }
+.post-card.pinned .post-body { color: var(--text); }
+.post-card.pinned .post-eyebrow { color: var(--brand); }
+.post-card.pinned .post-action { color: var(--text3); }
+
+/* Listing rows */
+.yx-listing { cursor: pointer; }
+.yx-sell-tag { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 800; color: #062A1D; background: var(--money); border-radius: 999px; padding: 2px 8px; margin-left: 4px; flex-shrink: 0; }
+.yx-ltitle { font-size: 16.5px; font-weight: 800; line-height: 1.25; margin-top: 4px; word-break: break-word; }
+.yx-lprice { font-family: 'Clash Display', 'Satoshi', sans-serif; font-size: 21px; font-weight: 700; color: var(--money); margin-top: 2px; }
+.yx-ldesc { font-size: 14px; line-height: 1.4; color: var(--text2); margin-top: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; }
+.yx-lmedia { display: grid; gap: 2px; margin-top: 10px; border-radius: 16px; overflow: hidden; border: 1px solid var(--yx-line); position: relative; }
+.yx-lmedia.n1 { grid-template-columns: 1fr; }
+.yx-lmedia.n2, .yx-lmedia.n3, .yx-lmedia.n4 { grid-template-columns: 1fr 1fr; }
+.yx-lmedia img { width: 100%; height: 100%; object-fit: cover; aspect-ratio: 1 / 1; display: block; background: var(--surface2); }
+.yx-lmedia.n1 img { aspect-ratio: 16 / 10; }
+.yx-lmedia.n3 img:first-child { grid-column: 1 / -1; aspect-ratio: 16 / 9; }
+.yx-lmedia .more-badge { position: absolute; right: 8px; bottom: 8px; background: rgba(9,7,20,.78); color: #fff; font-size: 12px; font-weight: 800; border-radius: 999px; padding: 3px 9px; }
+.yx-lchips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.yx-chip { font-size: 11.5px; font-weight: 700; color: var(--text2); background: var(--surface2); border: 1px solid var(--yx-line); border-radius: 999px; padding: 4px 10px; }
+.yx-chip.warn { color: var(--danger); }
+.yx-lbtns { display: flex; gap: 8px; margin-top: 12px; }
+.yx-btn { flex: 1; text-align: center; border-radius: 999px; padding: 10px 14px; font-weight: 800; font-size: 13.5px; cursor: pointer; border: 1px solid var(--yx-line); background: none; color: var(--text); text-decoration: none; }
+.yx-btn:hover { background: var(--yx-hover); }
+.yx-btn.primary { background: var(--accent); color: #1A1200; border: 0; }
+.yx-btn.primary:hover { filter: brightness(1.06); }
+
+/* Loading / empty / notes */
+.yx-skel { display: flex; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--yx-line); }
+.yx-skel i { display: block; border-radius: 8px; background: linear-gradient(90deg, var(--surface2), var(--surface3), var(--surface2)); background-size: 200% 100%; animation: yxShimmer 1.2s infinite linear; }
+.yx-skel .a { width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0; }
+.yx-skel .l { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+.yx-skel .l i { height: 12px; }
+@keyframes yxShimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+.yx-empty { text-align: center; padding: 48px 24px; color: var(--text3); font-size: 14px; line-height: 1.5; }
+.yx-empty b { display: block; color: var(--text); font-size: 17px; margin-bottom: 4px; }
+.yx-note { margin: 10px 16px 0; padding: 10px 12px; border-radius: 12px; background: var(--surface2); color: var(--text3); font-size: 12px; }
+.yx-endlink { display: block; text-align: center; padding: 18px; color: var(--brand); font-weight: 800; font-size: 14px; }
+
+/* Compose FAB: was positioned off-screen on phones narrower than 480px */
+.cp-fab { left: auto; margin-left: 0; right: max(16px, calc(50% - 284px)); background: var(--brand-dark); color: #fff; box-shadow: 0 10px 24px rgba(124,58,237,.45); }
+.compose-header button.post-submit { background: var(--brand-dark); color: #fff; }
+.compose-body textarea { font-size: 18px; }
+
+/* Bottom sheet + toast */
+.yx-sheet-bg { position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 120; display: flex; align-items: flex-end; justify-content: center; }
+.yx-sheet { width: 100%; max-width: 600px; background: var(--surface); border-radius: 20px 20px 0 0; padding: 8px 0 calc(12px + var(--safe-bottom)); }
+.yx-sheet button { display: flex; align-items: center; gap: 12px; width: 100%; background: none; border: 0; color: var(--text); font: inherit; font-weight: 700; font-size: 15px; padding: 15px 20px; text-align: left; cursor: pointer; }
+.yx-sheet button:hover { background: var(--yx-hover); }
+.yx-sheet button.danger { color: var(--danger); }
+#yxToast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--bottom-h) + var(--safe-bottom) + 24px); background: var(--surface3); color: var(--text); border: 1px solid var(--border); border-radius: 999px; padding: 10px 18px; font-size: 13.5px; font-weight: 700; z-index: 130; box-shadow: var(--shadow-lg); max-width: 90%; }
+</style>
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#7C3AED">
 <meta name="color-scheme" content="dark light">
@@ -1175,25 +1293,45 @@ img { max-width: 100%; display: block; }
 
 <div class="app-shell">
 
-  <header class="cp-page-header">
-    <div>
-      <h1>The Yard</h1>
-      <div class="brand-sub" id="uniName" data-uni-name>Obafemi Awolowo University</div>
+  <header class="yx-header">
+    <div class="yx-top">
+      <a class="yx-me" href="profile.html" aria-label="Your profile"><span class="avatar" id="yxMeAvatar">U</span></a>
+      <div class="yx-title">
+        <h1>The Yard</h1>
+        <div class="brand-sub" id="uniName" data-uni-name>Your campus</div>
+      </div>
+      <div class="cp-header-actions">
+        <a class="icon-btn" href="notifications.html" aria-label="Notifications">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        </a>
+      </div>
     </div>
-    <div class="cp-header-actions">
-      <a class="icon-btn" href="notifications.html" aria-label="Notifications">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-        <span class="icon-badge">2</span>
-      </a>
+    <div class="yx-tabs" role="tablist">
+      <button class="yx-tab active" data-feed="all" role="tab">For you</button>
+      <button class="yx-tab" data-feed="posts" role="tab">Posts</button>
+      <button class="yx-tab" data-feed="market" role="tab">Marketplace</button>
     </div>
   </header>
+
+  <div class="yx-composer" id="yxComposer">
+    <span class="avatar" id="yxComposerAvatar">U</span>
+    <div class="yx-composer-main">
+      <button type="button" class="yx-composer-input" id="yxComposerInput">What's happening on campus?</button>
+      <div class="yx-composer-bar">
+        <button type="button" class="yx-ic" id="yxComposerPhoto" aria-label="Add photo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></button>
+        <button type="button" class="yx-ic" id="yxComposerVideo" aria-label="Add video"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></button>
+        <a class="yx-ic sell" href="create.html" aria-label="Sell something"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></a>
+        <button type="button" class="yx-post-btn" id="yxComposerPost">Post</button>
+      </div>
+    </div>
+  </div>
 
   <div id="feed"></div>
 
 </div>
 
 <button class="cp-fab" id="composeFab" aria-label="New post">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
 </button>
 
 <!-- Compose overlay -->
@@ -1627,102 +1765,210 @@ function renderMedia(p) {
   `;
 }
 
+const YX_SVG = (d, extra = '') => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ${extra}>${d}</svg>`;
+const YX = {
+  reply:  YX_SVG('<path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>'),
+  repost: YX_SVG('<path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>'),
+  zap:    YX_SVG('<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>'),
+  share:  YX_SVG('<path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/>'),
+  more:   `<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg>`,
+  badge:  `<svg class="yx-badge" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 1.7 2.9-.2 1.2 2.7 2.5 1.5-.7 2.8L21 12l-1.7 2.2.7 2.8-2.5 1.5-1.2 2.7-2.9-.2L12 22l-2.4-1.7-2.9.2-1.2-2.7L3 16.3l.7-2.8L2 12l1.7-2.2L3 7l2.5-1.5 1.2-2.7 2.9.2L12 2z"/><path d="M8.5 12.2l2.4 2.4 4.6-4.9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+};
+
+function yxAvatar(author, name) {
+  return author && author.avatar_url
+    ? `<img src="${CP.esc(author.avatar_url)}" alt="" loading="lazy">`
+    : CP.esc(window.CP.initials(name));
+}
+function yxProfileHref(id) { return id ? `profile-view.html?id=${encodeURIComponent(id)}` : '#'; }
+
 function renderPost(p, likedIds) {
   const author = p.profiles || {};
   const name = author.full_name || author.username || 'Camplugie user';
-  const isPinned = author.is_hub || author.is_hub_service || p.featured;
-  const eyebrow = isPinned ? `<div class="post-eyebrow">📌 ${p.featured && !author.is_hub ? 'PINNED BY ADMIN' : 'CAMPLUGIE OFFICIAL'}</div>` : '';
+  const official = !!(author.is_hub || author.is_hub_service);
+  const pinned = official || !!p.featured;
+  const eyebrow = pinned
+    ? `<div class="yx-eyebrow">📌 ${p.featured && !official ? 'Pinned by admin' : 'Camplugie official'}</div>` : '';
   const likeCount = p.like_count || 0;
   const commentCount = p.comment_count || 0;
   const repostCount = p.repost_count || 0;
   const hasLiked = likedIds.has(p.id);
+  const authorId = author.id || p.author_id || '';
+  const text = p.body || p.content;
 
   return `
-    <div class="post-card${isPinned ? ' pinned' : ''}" data-id="${p.id}">
-      <div class="avatar">${window.CP.initials(name)}</div>
+    <article class="post-card yx-card${pinned ? ' pinned' : ''}" data-id="${p.id}" data-kind="post" data-owner="${CP.esc(authorId)}">
+      <a class="yx-av" href="${yxProfileHref(authorId)}"><span class="avatar">${yxAvatar(author, name)}</span></a>
       <div class="post-main">
         ${eyebrow}
         <div class="post-header-row">
-          <span class="post-name">${name}</span>
+          <a class="post-name" href="${yxProfileHref(authorId)}">${CP.esc(name)}</a>
+          ${official ? YX.badge : ''}
           <span class="post-handle">@${CP.esc(author.username || 'user')}</span>
           <span class="post-dot">·</span>
           <span class="post-time">${window.CP.timeAgo(p.created_at)}</span>
+          <button class="yx-more" aria-label="More">${YX.more}</button>
         </div>
-        ${p.body || p.content ? `<div class="post-body">${CP.esc(p.body || p.content)}</div>` : ''}
+        ${text ? `<div class="post-body">${CP.esc(text)}</div>` : ''}
         ${renderMedia(p)}
         <div class="post-actions">
-          <button class="post-action comment-btn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-            ${commentCount || ''}
-          </button>
-          <button class="post-action repost-btn${repostCount ? ' repost-active' : ''}">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
-            ${repostCount || ''}
-          </button>
-          <button class="post-action zap-btn${hasLiked ? ' liked' : ''}" data-liked="${hasLiked}">
-            ⚡ <span class="zap-count">${likeCount}</span>
-          </button>
-          <button class="post-action share-btn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-          </button>
+          <button class="post-action comment-btn" aria-label="Comments">${YX.reply}<span class="count">${commentCount || ''}</span></button>
+          <button class="post-action repost-btn${repostCount ? ' repost-active' : ''}" aria-label="Repost">${YX.repost}<span class="count">${repostCount || ''}</span></button>
+          <button class="post-action zap-btn${hasLiked ? ' liked' : ''}" data-liked="${hasLiked}" aria-label="Like">${YX.zap}<span class="zap-count">${likeCount}</span></button>
+          <button class="post-action share-btn" aria-label="Share">${YX.share}</button>
         </div>
       </div>
-    </div>
-  `;
+    </article>`;
 }
+
+function renderListing(l, seller) {
+  seller = seller || {};
+  const name = seller.full_name || seller.username || 'Seller';
+  const own = !!myUserId && l.seller_id === myUserId;
+  const price = Number(l.price) > 0 ? window.CP.fmtNaira(l.price) : 'Price on request';
+  const imgs = (l.media_urls || []).filter(Boolean);
+  const shown = imgs.slice(0, 4);
+  const extra = imgs.length - shown.length;
+  const media = shown.length
+    ? `<div class="yx-lmedia n${shown.length}">${shown.map(u => `<img src="${CP.esc(u)}" alt="" loading="lazy">`).join('')}${extra > 0 ? `<span class="more-badge">+${extra}</span>` : ''}</div>`
+    : '';
+  const catLabel = l.listing_type === 'service' ? 'Service' : ({ textbooks: 'Textbooks', electronics: 'Electronics', fashion: 'Fashion', food: 'Food', services: 'Services', more: 'Other' }[l.category] || '');
+  const soldOut = l.listing_type !== 'service' && l.stock_qty != null && Number(l.stock_qty) <= 0;
+  const chips = [
+    catLabel ? `<span class="yx-chip">${CP.esc(catLabel)}</span>` : '',
+    l.pickup_label ? `<span class="yx-chip">📍 ${CP.esc(l.pickup_label)}</span>` : '',
+    soldOut ? `<span class="yx-chip warn">Sold out</span>`
+      : (l.listing_type !== 'service' && l.stock_qty > 1 ? `<span class="yx-chip">${Number(l.stock_qty)} available</span>` : ''),
+  ].join('');
+
+  return `
+    <article class="post-card yx-card yx-listing" data-id="${l.id}" data-kind="listing" data-owner="${CP.esc(l.seller_id || '')}">
+      <a class="yx-av" href="${yxProfileHref(l.seller_id)}"><span class="avatar">${yxAvatar(seller, name)}</span></a>
+      <div class="post-main">
+        <div class="post-header-row">
+          <a class="post-name" href="${yxProfileHref(l.seller_id)}">${CP.esc(name)}</a>
+          ${seller.is_verified ? YX.badge : ''}
+          <span class="post-handle">@${CP.esc(seller.username || 'seller')}</span>
+          <span class="post-dot">·</span>
+          <span class="post-time">${window.CP.timeAgo(l.created_at)}</span>
+          <span class="yx-sell-tag">🛍️ For sale</span>
+          <button class="yx-more" aria-label="More">${YX.more}</button>
+        </div>
+        <div class="yx-ltitle">${CP.esc(l.title)}</div>
+        <div class="yx-lprice">${price}</div>
+        ${l.description ? `<div class="yx-ldesc">${CP.esc(l.description)}</div>` : ''}
+        ${media}
+        ${chips ? `<div class="yx-lchips">${chips}</div>` : ''}
+        <div class="yx-lbtns">
+          <a class="yx-btn" href="listing.html?id=${encodeURIComponent(l.id)}">View</a>
+          ${own ? '' : `<button class="yx-btn primary yx-msg-btn" ${soldOut ? 'disabled style="opacity:.5"' : ''}>Message seller</button>`}
+          <button class="post-action share-btn" aria-label="Share" style="flex:0 0 auto">${YX.share}</button>
+        </div>
+      </div>
+    </article>`;
+}
+
+// ---- Feed data: posts + marketplace listings for the same campus, merged into one timeline ----
+let yxFilter = 'all';   // 'all' | 'posts' | 'market'
+let yxCache = null;     // last fetched data, so switching tabs is instant
+
+function yxSkeleton() {
+  const row = `<div class="yx-skel"><i class="a"></i><div class="l"><i style="width:40%"></i><i style="width:92%"></i><i style="width:70%"></i></div></div>`;
+  return row.repeat(4);
+}
+function yxMsg(title, sub) { return `<div class="yx-empty"><b>${title}</b>${sub || ''}</div>`; }
 
 async function loadFeed(universityId) {
   const feed = document.getElementById('feed');
-  feed.innerHTML = `<div style="text-align:center;padding:30px;color:var(--text3);font-size:13px;">Loading feed…</div>`;
+  feed.innerHTML = yxSkeleton();
   try {
     await loadFeedInner(universityId, feed);
   } catch (err) {
-    // Anything that throws (rather than returning an { error }) used to leave
-    // the feed showing "Loading feed…" forever. Always land on a real message.
     console.error('Feed load threw:', err);
-    feed.innerHTML = `<div style="text-align:center;padding:30px;color:var(--text3);font-size:13px;">Couldn't load the feed.<br><span style="font-size:11px;opacity:.7">${CP.esc(err.message || err)}</span></div>`;
+    feed.innerHTML = yxMsg("Couldn't load the feed", `<span style="font-size:11px;opacity:.7">${CP.esc(err.message || err)}</span>`);
   }
 }
 
-async function loadFeedInner(universityId, feed) {
-  let { data, error } = await window.sb
-    .from('posts')
-    .select(window.CP.POST_SELECT)
+async function yxFetchPosts(universityId) {
+  let { data, error } = await window.sb.from('posts').select(window.CP.POST_SELECT)
     .eq('university_id', universityId)
-    .order('featured', { ascending: false })
-    .order('created_at', { ascending: false })
-    .limit(30);
-
-  // Fall back gracefully if the 'featured' column doesn't exist yet on this
-  // database (run the migration to get pinning; this keeps the feed working either way).
+    .order('featured', { ascending: false }).order('created_at', { ascending: false }).limit(30);
+  // Older databases don't have posts.featured yet — keep the feed working without pin-sorting.
   if (error && /featured/i.test(error.message || '')) {
-    console.warn('posts.featured column missing — loading feed without pin-sort. Run the admin migration to enable pinning.');
-    ({ data, error } = await window.sb
-      .from('posts')
-      .select(window.CP.POST_SELECT)
-      .eq('university_id', universityId)
-      .order('created_at', { ascending: false })
-      .limit(30));
+    ({ data, error } = await window.sb.from('posts').select(window.CP.POST_SELECT)
+      .eq('university_id', universityId).order('created_at', { ascending: false }).limit(30));
   }
+  return { data: data || [], error };
+}
 
-  if (error) {
-    console.error('Feed load error:', error);
-    feed.innerHTML = `<div style="text-align:center;padding:30px;color:var(--text3);font-size:13px;">Couldn't load the feed.<br><span style="font-size:11px;opacity:.7">${CP.esc(error.message || '')}</span></div>`;
+async function yxFetchListings(universityId) {
+  // Plain select + separate seller lookup, so this never depends on a listings -> profiles foreign key.
+  const { data, error } = await window.sb.from('listings').select('*')
+    .eq('university_id', universityId).eq('is_available', true)
+    .or('status.is.null,status.neq.removed')
+    .order('created_at', { ascending: false }).limit(20);
+  if (error) return { data: [], sellers: new Map(), error };
+
+  const sellers = new Map();
+  const ids = [...new Set((data || []).map(l => l.seller_id).filter(Boolean))];
+  if (ids.length) {
+    const { data: profs, error: pErr } = await window.sb.from('profiles')
+      .select('id, username, full_name, avatar_url, is_verified').in('id', ids);
+    if (pErr) console.error('Seller lookup error (non-fatal):', pErr);
+    (profs || []).forEach(pr => sellers.set(pr.id, pr));
+  }
+  return { data: data || [], sellers, error: null };
+}
+
+async function loadFeedInner(universityId, feed) {
+  const [pRes, lRes] = await Promise.all([yxFetchPosts(universityId), yxFetchListings(universityId)]);
+  if (pRes.error) console.error('Feed load error (posts):', pRes.error);
+  if (lRes.error) console.error('Feed load error (listings):', lRes.error);
+
+  if (pRes.error && lRes.error) {
+    feed.innerHTML = yxMsg("Couldn't load the feed", `<span style="font-size:11px;opacity:.7">${CP.esc(pRes.error.message || '')}</span>`);
     return;
   }
-  if (!data || !data.length) { feed.innerHTML = `<div style="text-align:center;padding:30px;color:var(--text3);font-size:13px;">No posts yet — be the first to post in The Yard 🎓</div>`; return; }
 
-  // Fetch which of these posts the current user has liked, as a separate query
-  // (safer than an embedded join, which breaks if the FK relationship name doesn't match).
+  // Which posts has this user liked? Separate query (an embedded join breaks if the FK name differs).
   let likedIds = new Set();
-  if (myUserId) {
+  if (myUserId && pRes.data.length) {
     const { data: likes, error: likesError } = await window.sb
-      .from('post_likes').select('post_id').eq('user_id', myUserId).in('post_id', data.map(p => p.id));
+      .from('post_likes').select('post_id').eq('user_id', myUserId).in('post_id', pRes.data.map(p => p.id));
     if (likesError) console.error('Likes lookup error (non-fatal):', likesError);
     else likedIds = new Set((likes || []).map(l => l.post_id));
   }
 
-  feed.innerHTML = data.map(p => renderPost(p, likedIds)).join('');
+  yxCache = { uni: universityId, posts: pRes.data, listings: lRes.data, sellers: lRes.sellers || new Map(),
+              likedIds, postsError: pRes.error, listingsError: lRes.error };
+  renderFeed();
+}
+
+function renderFeed() {
+  const feed = document.getElementById('feed');
+  if (!yxCache) return;
+  const { posts, listings, sellers, likedIds, postsError, listingsError } = yxCache;
+
+  const items = [];
+  if (yxFilter !== 'market') posts.forEach(p => items.push({ kind: 'post', d: p, t: new Date(p.created_at).getTime() || 0, pin: p.featured ? 1 : 0 }));
+  if (yxFilter !== 'posts') listings.forEach(l => items.push({ kind: 'listing', d: l, t: new Date(l.created_at).getTime() || 0, pin: 0 }));
+  items.sort((a, b) => (b.pin - a.pin) || (b.t - a.t));
+
+  let notes = '';
+  if (postsError && yxFilter !== 'market') notes += `<div class="yx-note">Couldn't load posts right now (${CP.esc(postsError.message || 'error')}).</div>`;
+  if (listingsError && yxFilter !== 'posts') notes += `<div class="yx-note">Couldn't load marketplace items right now (${CP.esc(listingsError.message || 'error')}).</div>`;
+
+  if (!items.length) {
+    const empty = yxFilter === 'market'
+      ? yxMsg('Nothing for sale yet', 'Be the first to <a href="create.html" style="color:var(--brand);font-weight:800">list something</a> on your campus.')
+      : yxMsg('No posts yet', 'Be the first to post in The Yard 🎓');
+    feed.innerHTML = notes + empty;
+    return;
+  }
+
+  const end = (yxFilter !== 'posts' && listings.length)
+    ? `<a class="yx-endlink" href="market.html">Browse the full marketplace →</a>` : '';
+  feed.innerHTML = notes + items.map(i => i.kind === 'post' ? renderPost(i.d, likedIds) : renderListing(i.d, sellers.get(i.d.seller_id))).join('') + end;
   initMediaInteractions();
 }
 
@@ -1814,6 +2060,7 @@ window.onCpReady((e) => {
 async function initGuestFeedBrowsing() {
   const composeFab = document.getElementById('composeFab');
   if (composeFab) composeFab.style.display = 'none';
+  const yxComposerEl = document.getElementById('yxComposer'); if (yxComposerEl) yxComposerEl.style.display = 'none';
 
   const banner = document.createElement('div');
   banner.style.cssText = 'background:var(--surface2);border-radius:12px;padding:12px 14px;margin:10px 14px;font-size:13px;color:var(--text2);display:flex;flex-direction:column;gap:8px;';
@@ -2072,13 +2319,143 @@ async function sendComment() {
   // Keep the on-screen comment count in sync without a full feed reload
   const card = document.querySelector(`.post-card[data-id="${activePostId}"]`);
   const commentBtn = card?.querySelector('.comment-btn');
-  if (commentBtn) {
-    const current = parseInt(commentBtn.textContent.replace(/\D/g, ''), 10) || 0;
-    commentBtn.lastChild.textContent = ` ${current + 1}`;
-  }
+  const countEl = commentBtn?.querySelector('.count');
+  if (countEl) countEl.textContent = (parseInt(countEl.textContent, 10) || 0) + 1;
   openComments(activePostId);
 }
 
+</script>
+<script>
+// ===== The Yard v2: tabs, composer row, share/more menus, listing actions =====
+function yxToast(msg) {
+  let el = document.getElementById('yxToast');
+  if (!el) { el = document.createElement('div'); el.id = 'yxToast'; document.body.appendChild(el); }
+  el.textContent = msg;
+  clearTimeout(yxToast._t);
+  yxToast._t = setTimeout(() => el.remove(), 2200);
+}
+
+// Tabs: instant switch from cache; tapping the active tab scrolls up and refreshes.
+document.querySelectorAll('.yx-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    const next = tab.dataset.feed;
+    if (next === yxFilter) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (currentUniversityId) loadFeed(currentUniversityId);
+      return;
+    }
+    yxFilter = next;
+    document.querySelectorAll('.yx-tab').forEach(t => t.classList.toggle('active', t === tab));
+    if (yxCache && yxCache.uni === currentUniversityId) renderFeed();
+    else if (currentUniversityId) loadFeed(currentUniversityId);
+  });
+});
+
+// Header + composer avatars, hide composer for guests
+window.onCpReady((e) => {
+  const profile = e.detail.profile;
+  if (!e.detail.user) { const c = document.getElementById('yxComposer'); if (c) c.style.display = 'none'; return; }
+  const name = profile?.full_name || profile?.username || 'U';
+  ['yxMeAvatar', 'yxComposerAvatar'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = yxAvatar(profile, name);
+  });
+});
+
+// Composer row opens the full compose sheet (all existing posting logic is reused)
+document.getElementById('yxComposerInput').addEventListener('click', () => openCompose());
+document.getElementById('yxComposerPost').addEventListener('click', () => openCompose());
+document.getElementById('yxComposerPhoto').addEventListener('click', () => {
+  if (!window.CP_requireAuth()) return;
+  openCompose(); document.getElementById('composeImageInput').click();
+});
+document.getElementById('yxComposerVideo').addEventListener('click', () => {
+  if (!window.CP_requireAuth()) return;
+  openCompose(); document.getElementById('composeVideoInput').click();
+});
+
+function yxLinkFor(card) {
+  const id = card.dataset.id;
+  return card.dataset.kind === 'listing'
+    ? `${location.origin}/listing.html?id=${id}`
+    : `${location.origin}/yard.html`;
+}
+
+async function yxShare(card) {
+  const url = yxLinkFor(card);
+  const title = card.dataset.kind === 'listing' ? (card.querySelector('.yx-ltitle')?.textContent || 'Camplugie listing') : 'Camplugie';
+  try {
+    if (navigator.share) { await navigator.share({ title, url }); return; }
+    await navigator.clipboard.writeText(url);
+    yxToast('Link copied');
+  } catch (err) { if (err && err.name !== 'AbortError') yxToast('Could not share'); }
+}
+
+function yxSheet(buttons) {
+  const bg = document.createElement('div');
+  bg.className = 'yx-sheet-bg';
+  bg.innerHTML = `<div class="yx-sheet">${buttons.map((b, i) => `<button data-i="${i}" class="${b.danger ? 'danger' : ''}">${b.label}</button>`).join('')}</div>`;
+  bg.addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (btn) buttons[Number(btn.dataset.i)].run();
+    if (btn || e.target === bg) bg.remove();
+  });
+  document.body.appendChild(bg);
+}
+
+document.addEventListener('click', async (e) => {
+  // Share
+  const shareBtn = e.target.closest('.share-btn');
+  if (shareBtn) { e.stopPropagation(); const card = shareBtn.closest('[data-kind]'); if (card) yxShare(card); return; }
+
+  // Repost (no backend for this yet — be honest about it)
+  if (e.target.closest('.repost-btn')) { yxToast('Reposts are coming soon'); return; }
+
+  // More menu
+  const moreBtn = e.target.closest('.yx-more');
+  if (moreBtn) {
+    e.stopPropagation();
+    const card = moreBtn.closest('[data-kind]');
+    if (!card) return;
+    const isListing = card.dataset.kind === 'listing';
+    const mine = !!myUserId && card.dataset.owner === myUserId;
+    const buttons = [{ label: '🔗 Copy link', run: async () => { try { await navigator.clipboard.writeText(yxLinkFor(card)); yxToast('Link copied'); } catch (_) { yxToast('Could not copy'); } } }];
+    if (mine) buttons.push({
+      label: isListing ? '🗑️ Delete listing' : '🗑️ Delete post', danger: true,
+      run: async () => {
+        if (!confirm(isListing ? 'Delete this listing?' : 'Delete this post?')) return;
+        const q = isListing
+          ? window.sb.from('listings').update({ status: 'removed', is_available: false }).eq('id', card.dataset.id).eq('seller_id', myUserId)
+          : window.sb.from('posts').delete().eq('id', card.dataset.id).eq('author_id', myUserId);
+        const { error } = await q;
+        if (error) { alert(error.message || 'Could not delete'); return; }
+        card.remove();
+        if (yxCache) { yxCache.posts = yxCache.posts.filter(p => p.id !== card.dataset.id); yxCache.listings = yxCache.listings.filter(l => l.id !== card.dataset.id); }
+      },
+    });
+    yxSheet(buttons);
+    return;
+  }
+
+  // Message the seller about this listing
+  const msgBtn = e.target.closest('.yx-msg-btn');
+  if (msgBtn) {
+    e.stopPropagation();
+    if (!window.CP_requireAuth()) return;
+    const card = msgBtn.closest('.yx-listing');
+    msgBtn.disabled = true; const old = msgBtn.textContent; msgBtn.textContent = 'Opening…';
+    const convoId = await window.CP.openOrCreateConversation(myUserId, card.dataset.owner, card.dataset.id);
+    if (convoId) { window.location.href = `chat-thread.html?id=${convoId}`; return; }
+    msgBtn.disabled = false; msgBtn.textContent = old; yxToast("Couldn't open the chat");
+    return;
+  }
+
+  // Tap anywhere else on a listing card → open it
+  const listingCard = e.target.closest('.yx-listing');
+  if (listingCard && !e.target.closest('a, button')) {
+    window.location.href = `listing.html?id=${encodeURIComponent(listingCard.dataset.id)}`;
+  }
+});
 </script>
 <script>
 // Service worker: required for the Android install prompt and for the

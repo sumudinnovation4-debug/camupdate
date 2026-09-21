@@ -3173,25 +3173,34 @@ function applyGroupSettings() {
    ============================================================ */
 
 async function loadMembers() {
-  let sel = 'user_id, role, last_read_at, is_muted, can_lecture, profiles(id, full_name, username, avatar_url, university_id)';
-  let { data, error } = await window.sb.from('group_members').select(sel).eq('group_id', groupId);
-
-  // Fall back through the optional columns if this DB doesn't have them yet.
+  // Plain select + a separate profiles lookup. The old single query embedded
+  // profiles(...) inside the group_members select, which fails outright when Supabase
+  // can't see a group_members -> profiles foreign key. That threw away the whole member
+  // list, so nobody (including the creator) was rendered as a member or admin.
+  const { data, error } = await window.sb.from('group_members').select('*').eq('group_id', groupId);
   if (error) {
-    optional(error, 'last_read_at'); optional(error, 'is_muted'); optional(error, 'can_lecture');
-    OFF.add('last_read_at'); OFF.add('is_muted'); OFF.add('can_lecture');
-    ({ data, error } = await window.sb.from('group_members')
-      .select('user_id, role, profiles(id, full_name, username, avatar_url, university_id)').eq('group_id', groupId));
+    console.error('Members error:', error);
+    refreshMemberDerived(); // still lets the group creator get admin via groups.creator_id
+    return;
   }
-  if (error) { console.error('Members error:', error); return; }
 
-  members = (data || []).map(r => ({
+  const rows = data || [];
+  const ids = [...new Set(rows.map(r => r.user_id).filter(Boolean))];
+  const profileById = new Map();
+  if (ids.length) {
+    const { data: profs, error: profErr } = await window.sb.from('profiles')
+      .select('id, full_name, username, avatar_url, university_id').in('id', ids);
+    if (profErr) console.error('Member profiles error:', profErr);
+    (profs || []).forEach(pr => profileById.set(pr.id, pr));
+  }
+
+  members = rows.map(r => ({
     user_id: r.user_id,
     role: r.role || 'member',
     last_read_at: r.last_read_at || null,
     is_muted: !!r.is_muted,
     can_lecture: !!r.can_lecture,
-    profile: r.profiles || null,
+    profile: profileById.get(r.user_id) || null,
   }));
   refreshMemberDerived();
 }

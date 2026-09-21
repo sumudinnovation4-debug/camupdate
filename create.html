@@ -1286,6 +1286,7 @@ img { max-width: 100%; display: block; }
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="config.js?v=3"></script>
+<script src="cloudinary.js?v=1"></script>
 <script>
 // Shared Supabase client — loaded on every page after the Supabase UMD script.
 // Uses the same project as the React app (public anon key, safe to expose client-side; RLS enforces access).
@@ -1703,7 +1704,7 @@ document.getElementById('listingForm').addEventListener('submit', async (e) => {
   submitBtn.disabled = false;
   submitBtn.textContent = 'Post listing';
 
-  if (error) { console.error('Listing create error:', error); alert('Could not post your listing — please try again.'); return; }
+  if (error) { console.error('Listing create error:', error); alert(`Could not post your listing: ${error.message || 'please try again.'}`); return; }
   window.location.href = 'home.html';
 });
 

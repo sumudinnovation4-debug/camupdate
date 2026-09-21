@@ -1905,9 +1905,11 @@ async function yxFetchListings(universityId) {
   // Plain select + separate seller lookup, so this never depends on a listings -> profiles foreign key.
   const { data, error } = await window.sb.from('listings').select('*')
     .eq('university_id', universityId).eq('is_available', true)
-    .or('status.is.null,status.neq.removed')
-    .order('created_at', { ascending: false }).limit(20);
+    .order('created_at', { ascending: false }).limit(30);
   if (error) return { data: [], sellers: new Map(), error };
+  // Filter removed items here, not in the query: `status` is a Postgres enum, and comparing it to a
+  // value the enum doesn't have (e.g. 'removed') makes the whole query fail with "invalid input value for enum".
+  data.splice(0, data.length, ...data.filter(l => !['removed', 'deleted'].includes(String(l.status || '').toLowerCase())).slice(0, 20));
 
   const sellers = new Map();
   const ids = [...new Set((data || []).map(l => l.seller_id).filter(Boolean))];
@@ -2424,10 +2426,16 @@ document.addEventListener('click', async (e) => {
       label: isListing ? '🗑️ Delete listing' : '🗑️ Delete post', danger: true,
       run: async () => {
         if (!confirm(isListing ? 'Delete this listing?' : 'Delete this post?')) return;
-        const q = isListing
-          ? window.sb.from('listings').update({ status: 'removed', is_available: false }).eq('id', card.dataset.id).eq('seller_id', myUserId)
-          : window.sb.from('posts').delete().eq('id', card.dataset.id).eq('author_id', myUserId);
-        const { error } = await q;
+        let error;
+        if (isListing) {
+          // Try the full "removed" state; if the status enum doesn't have that value, just mark it unavailable.
+          ({ error } = await window.sb.from('listings').update({ status: 'removed', is_available: false }).eq('id', card.dataset.id).eq('seller_id', myUserId));
+          if (error && /enum/i.test(error.message || '')) {
+            ({ error } = await window.sb.from('listings').update({ is_available: false }).eq('id', card.dataset.id).eq('seller_id', myUserId));
+          }
+        } else {
+          ({ error } = await window.sb.from('posts').delete().eq('id', card.dataset.id).eq('author_id', myUserId));
+        }
         if (error) { alert(error.message || 'Could not delete'); return; }
         card.remove();
         if (yxCache) { yxCache.posts = yxCache.posts.filter(p => p.id !== card.dataset.id); yxCache.listings = yxCache.listings.filter(l => l.id !== card.dataset.id); }

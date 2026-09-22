@@ -1,8 +1,1 @@
-[{
-      "relation": ["delegate_permission/common.handle_all_urls"],
-      "target": {
-        "namespace": "android_app",
-        "package_name": "app.vercel.newcampus_azure.twa",
-        "sha256_cert_fingerprints": ["F9:65:CF:AA:2B:51:DC:1C:E7:4D:1A:81:DB:D2:7C:56:69:3A:02:A2:C3:64:BB:48:0A:EA:6C:6A:D3:F9:C5:D2"]
-      }
-    }]
+[{      "relation": ["delegate_permission/common.handle_all_urls"],      "target": {        "namespace": "android_app",        "package_name": "com.camplugie.twa",        "sha256_cert_fingerprints": ["BE:A0:95:F7:18:4B:C2:CD:E9:87:3C:9E:6A:D6:C2:09:6C:D2:61:A0:67:7E:48:4A:33:A5:6C:2E:20:55:4F:89"]      }    }]

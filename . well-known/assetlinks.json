@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "app.vercel.newcampus_azure.twa",
+        "sha256_cert_fingerprints": ["F9:65:CF:AA:2B:51:DC:1C:E7:4D:1A:81:DB:D2:7C:56:69:3A:02:A2:C3:64:BB:48:0A:EA:6C:6A:D3:F9:C5:D2"]
+      }
+    }]

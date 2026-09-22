@@ -1,0 +1,13 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.camplugie.app",
+      "sha256_cert_fingerprints": [
+        "PASTE_SHA256_FROM_PWABUILDER_SIGNING_KEY_HERE",
+        "LATER_PASTE_GOOGLE_PLAY_APP_SIGNING_SHA256_HERE"
+      ]
+    }
+  }
+]

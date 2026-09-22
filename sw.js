@@ -6,21 +6,23 @@
      - offline navigation: fall back to the cached page, then offline.html
 */
 
-const VERSION = 'camplugie-v1';
+const VERSION = 'camplugie-v2';
 const SHELL = [
   '/', '/home.html', '/market.html', '/notifications.html', '/yard.html',
   '/profile.html', '/create.html', '/chat-thread.html', '/group-thread.html',
   '/groups.html', '/call.html', '/wallet.html', '/orders.html', '/cart.html',
   '/listing.html', '/swift.html', '/settings.html', '/offline.html',
   '/style.css', '/config.js', '/payments.js', '/chat-core.js',
-  '/manifest.webmanifest',
-  '/icons/icon-192.png', '/icons/icon-512.png',
+  '/manifest.webmanifest', '/pwa.js', '/download.html',
+  '/favicon.ico',
+  '/icons/icon-96.png', '/icons/icon-192.png', '/icons/icon-512.png', '/icons/apple-touch-icon.png',
 ];
 
 // Never cache: auth tokens, realtime, payments, serverless endpoints.
 const NEVER_CACHE = [
   'supabase.co', 'supabase.in', 'paystack.co', 'paystack.com',
   '/api/', 'expressturn.com', 'google.com/recaptcha',
+  '/downloads/', '.apk', '.aab',            // big installers must never be cached by the service worker
 ];
 
 self.addEventListener('install', (e) => {

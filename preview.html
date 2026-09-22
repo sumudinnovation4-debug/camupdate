@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Camplugie — Brand & loader preview</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#090714;color:#F8F6FF;padding:28px 18px 60px;line-height:1.5}
+.w{max-width:980px;margin:0 auto}
+h1{font-size:26px;margin:0 0 4px}h2{font-size:15px;letter-spacing:.08em;text-transform:uppercase;color:#A78BFA;margin:40px 0 14px}
+p.s{color:#8D86AA;margin:0 0 6px;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:16px;align-items:stretch}
+.box{border-radius:20px;padding:22px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;border:1px solid rgba(167,139,250,.2);background:#12101D;min-width:150px}
+.box.light{background:#fff;color:#333}.box small{font-size:11.5px;color:#8D86AA}.box.light small{color:#666}
+.box img{display:block;max-width:100%}
+.icons{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end}
+.icons figure{margin:0;text-align:center;font-size:11px;color:#8D86AA}
+.icons img{display:block;margin:0 auto 6px;background:repeating-conic-gradient(#1b1830 0 25%,#241f3d 0 50%) 0 0/16px 16px;border-radius:8px}
+button.b{background:linear-gradient(135deg,#7C3AED,#38BDF8);color:#fff;border:0;border-radius:12px;padding:11px 18px;font:700 14px system-ui;cursor:pointer;margin:4px 6px 4px 0}
+button.b.g{background:rgba(167,139,250,.14);border:1px solid rgba(167,139,250,.3)}
+.demo{background:#12101D;border:1px solid rgba(167,139,250,.2);border-radius:20px;padding:20px;margin-bottom:14px}
+code{background:#1A1729;padding:2px 7px;border-radius:6px;font-size:12.5px;color:#C9C3DE}
+pre{background:#0E0A1D;border:1px solid rgba(167,139,250,.15);border-radius:14px;padding:14px;overflow:auto;font-size:12.5px;color:#C9C3DE}
+</style>
+<script src="../pwa.js"></script>
+</head><body><div class="w">
+<h1>Camplugie — brand &amp; loader preview</h1>
+<p class="s">Everything in this update on one page. Open it on your phone and computer.</p>
+
+<h2>Logos</h2>
+<div class="row">
+  <div class="box"><img src="logo-stacked-on-dark.svg" width="240" alt=""><small>logo-stacked-on-dark.svg</small></div>
+  <div class="box"><img src="logo-horizontal-on-dark.svg" width="320" alt=""><small>logo-horizontal-on-dark.svg</small></div>
+  <div class="box light"><img src="logo-stacked-for-light-bg.svg" width="200" alt=""><small>logo-stacked-for-light-bg.svg</small></div>
+  <div class="box light"><img src="logo-horizontal-for-light-bg.svg" width="300" alt=""><small>logo-horizontal-for-light-bg.svg</small></div>
+  <div class="box"><img src="camplugie-mark.svg" width="120" alt=""><small>camplugie-mark.svg</small></div>
+</div>
+
+<h2>App icons</h2>
+<div class="icons">
+  <figure><img src="../icons/icon-192.png" width="96" alt="">icon-192 (any)</figure>
+  <figure><img src="../icons/maskable-512.png" width="96" alt="">maskable-512</figure>
+  <figure><img src="../icons/apple-touch-icon.png" width="90" alt="">apple-touch 180</figure>
+  <figure><img src="../icons/monochrome-512.png" width="80" alt="">monochrome</figure>
+  <figure><img src="../icons/icon-96.png" width="64" alt="">96</figure>
+  <figure><img src="../icons/icon-48.png" width="48" alt="">48</figure>
+  <figure><img src="../icons/favicon-32.png" width="32" alt="">favicon 32</figure>
+  <figure><img src="../icons/favicon-16.png" width="16" alt="">16</figure>
+</div>
+<h2>Play Store &amp; sharing images</h2>
+<div class="row">
+  <div class="box"><img src="../store/feature-graphic-1024x500.png" width="420" alt="" style="border-radius:12px"><small>store/feature-graphic-1024x500.png</small></div>
+  <div class="box"><img src="../og-image.png" width="420" alt="" style="border-radius:12px"><small>og-image.png (WhatsApp / link previews)</small></div>
+</div>
+
+<h2>Loading animations</h2>
+<div class="demo"><b>Launch splash</b><p class="s">Plays once per app launch. Tap to replay.</p>
+  <button class="b" onclick="CamplugiePWA.playSplash()">▶ Replay splash</button></div>
+
+<div class="demo"><b>Spinners</b><p class="s">Use inside buttons, lists, anywhere.</p>
+  <span class="cp-spinner sm"></span> &nbsp; <span class="cp-spinner"></span> &nbsp; <span class="cp-spinner lg"></span> &nbsp; <span class="cp-dots"><i></i><i></i><i></i></span>
+  <pre>&lt;span class="cp-spinner"&gt;&lt;/span&gt;   &lt;span class="cp-spinner sm"&gt;&lt;/span&gt;   &lt;span class="cp-spinner lg"&gt;&lt;/span&gt;
+&lt;span class="cp-dots"&gt;&lt;i&gt;&lt;/i&gt;&lt;i&gt;&lt;/i&gt;&lt;i&gt;&lt;/i&gt;&lt;/span&gt;</pre></div>
+
+<div class="demo"><b>Skeleton placeholders</b><p class="s">Show while a feed / list is loading.</p>
+  <div id="sk"></div>
+  <pre>feed.innerHTML = CPLoader.skeletonCards(4);   // then replace with real posts</pre></div>
+
+<div class="demo"><b>Full-screen loader &amp; top bar</b><p class="s">For payments, uploads, anything that must not be interrupted.</p>
+  <button class="b" onclick="CPLoader.show('Confirming your payment…');setTimeout(CPLoader.hide,2200)">Show overlay</button>
+  <button class="b g" onclick="CPLoader.bar.start();setTimeout(CPLoader.bar.done,2600)">Run top bar</button>
+  <button class="b g" onclick="CamplugiePWA.toast('Saved ✓')">Toast</button>
+  <pre>CPLoader.show('Confirming your payment…');
+await verifyPayment();
+CPLoader.hide();
+
+// or wrap a promise – hides itself when done / on error
+const res = await CPLoader.wrap(fetch('/api/paystack/verify'), 'Verifying…');</pre></div>
+
+<div class="demo"><b>Install banner</b><p class="s">Shows itself on Android Chrome after a few seconds. Force it here:</p>
+  <button class="b g" onclick="localStorage.removeItem('cp_install_snooze');CamplugiePWA.showBanner()">Show install banner</button></div>
+
+</div>
+<script>document.getElementById('sk').innerHTML=CPLoader.skeletonCards(3);</script>
+</body></html>

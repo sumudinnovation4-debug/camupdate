@@ -2,7 +2,7 @@
       "relation": ["delegate_permission/common.handle_all_urls"],
       "target": {
         "namespace": "android_app",
-        "package_name": "com.camplugie.twa",
-        "sha256_cert_fingerprints": ["BE:A0:95:F7:18:4B:C2:CD:E9:87:3C:9E:6A:D6:C2:09:6C:D2:61:A0:67:7E:48:4A:33:A5:6C:2E:20:55:4F:89"]
+        "package_name": "com.camplugie.www.twa",
+        "sha256_cert_fingerprints": ["54:9D:02:16:FF:E8:77:82:74:EE:46:4B:72:DC:50:30:54:0A:3D:B4:66:1D:45:07:D7:82:FC:A7:62:84:8F:A8"]
       }
     }]

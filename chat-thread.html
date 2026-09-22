@@ -915,6 +915,24 @@ img { max-width: 100%; display: block; }
 .call-mute-btn.active svg { color: var(--brand-dark); }
 
 /* ===== Chat thread ===== */
+.thread-menu-wrap { position: relative; }
+.thread-menu {
+  position: absolute; top: 100%; right: 0; margin-top: 6px; min-width: 180px;
+  background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  box-shadow: 0 10px 28px rgba(0,0,0,.28); z-index: 60; overflow: hidden; display: none;
+}
+.thread-menu.show { display: block; }
+.thread-menu button {
+  display: block; width: 100%; text-align: left; background: none; border: none; cursor: pointer;
+  font: inherit; font-size: 13.5px; font-weight: 600; color: var(--text); padding: 12px 15px;
+}
+.thread-menu button + button { border-top: 1px solid var(--border); }
+.thread-menu button:active { background: var(--surface3); }
+.thread-menu button.danger { color: var(--danger); }
+.blocked-banner {
+  padding: 14px 18px; text-align: center; font-size: 12.5px; font-weight: 600; color: var(--text3);
+  background: var(--surface2); border-top: 1px solid var(--border);
+}
 .thread-header-info { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
 .thread-header-info .avatar { width: 34px; height: 34px; font-size: 12px; }
 .thread-header-info b { font-size: 14.5px; display: block; }
@@ -1303,6 +1321,16 @@ body.chat-page { overflow: hidden; height: 100dvh; }
     <button class="icon-btn" id="callBtn" aria-label="Voice call">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
     </button>
+    <div class="thread-menu-wrap">
+      <button class="icon-btn" id="threadMenuBtn" aria-label="More options">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg>
+      </button>
+      <div class="thread-menu" id="threadMenu">
+        <button type="button" data-act="profile">View profile</button>
+        <button type="button" data-act="report">🚩 Report user</button>
+        <button type="button" data-act="block" id="blockMenuBtn" class="danger">🚫 Block user</button>
+      </div>
+    </div>
   </header>
 
   <div class="chat-pinned">
@@ -1327,6 +1355,10 @@ body.chat-page { overflow: hidden; height: 100dvh; }
     <span class="bar"></span>
     <span class="txt"><b id="replyName"></b><span id="replyText"></span></span>
     <button id="cancelReplyBtn" aria-label="Cancel reply">×</button>
+  </div>
+
+  <div class="blocked-banner" id="blockedBanner" style="display:none">
+    <span id="blockedBannerText"></span>
   </div>
 
   <div class="thread-composer">
@@ -1558,6 +1590,8 @@ let myName = 'Someone';
 let convo = null;
 let otherUserId = null;
 let otherUserName = '';
+let iBlockedThem = false;
+let theyBlockedMe = false;
 let isSeller = false;
 
 let messages = [];            // live message list (ordered)
@@ -1702,6 +1736,7 @@ function ping() {
 /* ============ sending ============ */
 
 async function sendMessage(extra = {}) {
+  if (iBlockedThem || theyBlockedMe) { alert("You can't send messages in this conversation."); return; }
   const input = $('messageInput');
   const content = (extra.content !== undefined ? extra.content : input.value).trim();
   if ((!content && !extra.media_url) || !convo) return;
@@ -1913,14 +1948,82 @@ C.wireLightbox(box);
 /* ============ calls ============ */
 $('callBtn').addEventListener('click', () => {
   if (!otherUserId) return;
+  if (iBlockedThem || theyBlockedMe) { alert("You can't call this person right now."); return; }
   window.location.href = `call.html?peer=${otherUserId}&name=${encodeURIComponent(otherUserName)}&role=caller&mode=audio`;
 });
 $('videoBtn').addEventListener('click', () => {
   if (!otherUserId) return;
+  if (iBlockedThem || theyBlockedMe) { alert("You can't call this person right now."); return; }
   window.location.href = `call.html?peer=${otherUserId}&name=${encodeURIComponent(otherUserName)}&role=caller&mode=video`;
 });
 $('threadHeaderInfo').addEventListener('click', () => {
   if (otherUserId) window.location.href = `profile-view.html?id=${otherUserId}`;
+});
+
+/* ============ report / block ============ */
+async function checkBlockAndRender() {
+  if (!otherUserId || !myUserId) return;
+  const [{ data: mine }, { data: theirs }] = await Promise.all([
+    window.sb.from('user_blocks').select('id').eq('blocker_id', myUserId).eq('blocked_id', otherUserId).maybeSingle(),
+    window.sb.from('user_blocks').select('id').eq('blocker_id', otherUserId).eq('blocked_id', myUserId).maybeSingle(),
+  ]);
+  iBlockedThem = !!mine;
+  theyBlockedMe = !!theirs;
+  renderBlockUI();
+}
+
+function renderBlockUI() {
+  const banner = $('blockedBanner');
+  const composer = document.querySelector('.thread-composer');
+  const blockBtn = $('blockMenuBtn');
+  if (blockBtn) blockBtn.textContent = iBlockedThem ? '✅ Unblock user' : '🚫 Block user';
+  if (!banner || !composer) return;
+  if (iBlockedThem || theyBlockedMe) {
+    composer.style.display = 'none';
+    banner.style.display = 'block';
+    $('blockedBannerText').textContent = iBlockedThem
+      ? `You've blocked ${otherUserName}. Unblock them to send messages again.`
+      : `You can't reply in this conversation.`;
+  } else {
+    composer.style.display = '';
+    banner.style.display = 'none';
+  }
+}
+
+async function toggleBlockUser() {
+  if (!otherUserId || !myUserId) return;
+  if (iBlockedThem) {
+    if (!confirm(`Unblock ${otherUserName}?`)) return;
+    await window.sb.from('user_blocks').delete().eq('blocker_id', myUserId).eq('blocked_id', otherUserId);
+  } else {
+    if (!confirm(`Block ${otherUserName}? They won't be able to message or call you, and you won't be able to message them.`)) return;
+    await window.sb.from('user_blocks').insert({ blocker_id: myUserId, blocked_id: otherUserId });
+  }
+  await checkBlockAndRender();
+}
+
+async function reportUserFlow() {
+  if (!otherUserId || !myUserId) return;
+  const reason = prompt(`Report ${otherUserName} to Camplugie support. What's going on? (scam, harassment, spam, etc.)`);
+  if (!reason || !reason.trim()) return;
+  const { error } = await window.sb.from('reports').insert({
+    reporter_id: myUserId, reported_user_id: otherUserId, conversation_id: convo?.id || null, reason: reason.trim(),
+  });
+  if (error) { alert('Could not submit the report — please try again.'); return; }
+  alert("Thanks — your report has been sent to Camplugie support and will be reviewed.");
+}
+
+$('threadMenuBtn')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  $('threadMenu').classList.toggle('show');
+});
+document.addEventListener('click', () => $('threadMenu')?.classList.remove('show'));
+$('threadMenu')?.addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-act]'); if (!btn) return;
+  const act = btn.dataset.act;
+  if (act === 'profile' && otherUserId) window.location.href = `profile-view.html?id=${otherUserId}`;
+  if (act === 'report') reportUserFlow();
+  if (act === 'block') toggleBlockUser();
 });
 
 /* ============ listing / escrow (unchanged marketplace logic) ============ */
@@ -2067,6 +2170,7 @@ async function loadConversation(userId) {
   if (other?.avatar_url) av.innerHTML = `<img src="${C.esc(other.avatar_url)}" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`;
   else av.textContent = window.CP.initials(otherUserName);
 
+  await checkBlockAndRender();
   renderListingChip(data.listings);
   await loadMessages(id);
   await markDelivered();

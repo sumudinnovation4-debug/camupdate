@@ -301,6 +301,67 @@
   }
 
   /* =====================================================================
+   *  5b. WEB PUSH — real device notifications (messages, sales, orders…)
+   *      Pairs with the 'push' listener already in sw.js and the
+   *      push_subscriptions table (see sql/camplugie-safety-and-push.sql).
+   * ===================================================================== */
+  // Public key only — safe to ship client-side. Its private half lives in
+  // the VAPID_PRIVATE_KEY env var on the server and never appears in code.
+  var VAPID_PUBLIC_KEY = 'BG64U0SAkXq6cUtInaIg45fpIy7O0Yx_AnaKgBF1VGabHCliCb37r_gWJqh47KTSPrPtg_MY6W2_CfEjgaxsQ6s';
+
+  function urlBase64ToUint8Array(base64String) {
+    var padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+    var base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    var raw = atob(base64), out = new Uint8Array(raw.length);
+    for (var i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+    return out;
+  }
+
+  function pushSupported() {
+    return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+  }
+  function pushPermission() { return pushSupported() ? Notification.permission : 'unsupported'; }
+
+  // Requests permission, subscribes this device, and upserts the row into
+  // push_subscriptions (RLS lets a user write only their own rows) so the
+  // server can fan pushes out to it. Resolves false (never throws) if the
+  // user declines or the browser doesn't support push.
+  function subscribePush(userId) {
+    if (!pushSupported() || !userId || !window.sb) return Promise.resolve(false);
+    return Notification.requestPermission().then(function (perm) {
+      if (perm !== 'granted') return false;
+      return navigator.serviceWorker.ready.then(function (reg) {
+        return reg.pushManager.getSubscription().then(function (existing) {
+          return existing || reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+          });
+        });
+      }).then(function (sub) {
+        var j = sub.toJSON();
+        return window.sb.from('push_subscriptions').upsert({
+          user_id: userId, endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth,
+        }, { onConflict: 'endpoint' });
+      }).then(function () { return true; });
+    }).catch(function (e) { console.warn('[pwa] push subscribe failed', e); return false; });
+  }
+
+  // Unsubscribes this device and removes its row so the server stops
+  // trying to push to it.
+  function unsubscribePush() {
+    if (!pushSupported()) return Promise.resolve(false);
+    return navigator.serviceWorker.ready.then(function (reg) {
+      return reg.pushManager.getSubscription();
+    }).then(function (sub) {
+      if (!sub) return true;
+      var endpoint = sub.endpoint;
+      return sub.unsubscribe().then(function () {
+        return window.sb ? window.sb.from('push_subscriptions').delete().eq('endpoint', endpoint) : null;
+      }).then(function () { return true; });
+    }).catch(function (e) { console.warn('[pwa] push unsubscribe failed', e); return false; });
+  }
+
+  /* =====================================================================
    *  6. SHARE
    * ===================================================================== */
   function copy(text) {
@@ -338,6 +399,16 @@
     Bar.start();
   }, true);
 
+  // Fires on every protected page (each one dispatches 'cp-ready' after
+  // loading the session + profile). Keeps this device's subscription alive
+  // without ever showing a permission prompt unless one is actually needed.
+  doc.addEventListener('cp-ready', function (e) {
+    var profile = e.detail && e.detail.profile, user = e.detail && e.detail.user;
+    if (profile && profile.push_enabled && pushPermission() === 'granted' && user) {
+      subscribePush(user.id);
+    }
+  });
+
   window.CamplugiePWA = {
     apkUrl: APK_URL,
     install: install,
@@ -347,6 +418,12 @@
     copy: copy,
     toast: toast,
     showBanner: showBanner,
-    playSplash: function () { startSplash(true); }
+    playSplash: function () { startSplash(true); },
+    push: {
+      supported: pushSupported,
+      permission: pushPermission,
+      subscribe: subscribePush,
+      unsubscribe: unsubscribePush
+    }
   };
 })();

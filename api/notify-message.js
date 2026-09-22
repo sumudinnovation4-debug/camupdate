@@ -42,6 +42,10 @@ module.exports = async (req, res) => {
       return res.status(200).json({ ok: true, skipped: true }); // shouldn't happen, but never email yourself
     }
 
+    const { data: blocked } = await sb.from('user_blocks').select('id')
+      .eq('blocker_id', recipientId).eq('blocked_id', message.sender_id).maybeSingle();
+    if (blocked) return res.status(200).json({ ok: true, skipped: true });
+
     const { data: sender } = await sb.from('profiles').select('full_name, username').eq('id', message.sender_id).maybeSingle();
     const senderName = sender?.full_name || sender?.username || 'Someone';
     const preview = (message.content || '').slice(0, 140);
@@ -52,6 +56,7 @@ module.exports = async (req, res) => {
       type: 'message',
       title: `New message from ${senderName}`,
       body: `${preview}${listingTag}\n\nReply on Camplugie: https://camplugie.com/chat-thread.html?id=${conversation_id}`,
+      url: `/chat-thread.html?id=${conversation_id}`,
     });
 
     return res.status(200).json({ ok: true });

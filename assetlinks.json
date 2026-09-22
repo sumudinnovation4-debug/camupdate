@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.camplugie.www.twa",
+        "sha256_cert_fingerprints": ["54:9D:02:16:FF:E8:77:82:74:EE:46:4B:72:DC:50:30:54:0A:3D:B4:66:1D:45:07:D7:82:FC:A7:62:84:8F:A8"]
+      }
+    }]

@@ -2,6 +2,17 @@
 // These run server-side on Vercel only — never imported by frontend code.
 
 const { createClient } = require('@supabase/supabase-js');
+const webpush = require('web-push');
+
+// Web Push — VAPID_PUBLIC_KEY must match the key hardcoded in pwa.js.
+// VAPID_PRIVATE_KEY is a secret: set it as a Vercel env var, never commit it.
+if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+  webpush.setVapidDetails(
+    process.env.VAPID_SUBJECT || 'mailto:support@camplugie.com',
+    process.env.VAPID_PUBLIC_KEY,
+    process.env.VAPID_PRIVATE_KEY
+  );
+}
 
 const PAYSTACK_BASE = 'https://api.paystack.co';
 const COMMISSION_RATE = 0.05; // 5% platform commission
@@ -73,10 +84,41 @@ async function sendEmail({ to, subject, text }) {
   }
 }
 
-// Writes the in-app notification row AND emails the seller. Both halves are
-// wrapped so a failure here (bad email, Resend down, etc.) never breaks the
-// calling payment flow — it just logs and moves on.
-async function notifySeller(sb, { sellerId, type = 'order', title, body }) {
+// Pushes a real device notification to every device this user has ever
+// subscribed on (push_subscriptions can hold several rows per user — one
+// per browser/device). A dead subscription (410 Gone / 404) is deleted so
+// it stops being retried on every future notification.
+async function sendPush(sb, userId, { title, body, url }) {
+  if (!process.env.VAPID_PRIVATE_KEY) return; // not configured yet — no-op
+  try {
+    const { data: subs } = await sb.from('push_subscriptions').select('*').eq('user_id', userId);
+    if (!subs || !subs.length) return;
+
+    const payload = JSON.stringify({ title, body, url: url || '/notifications.html', tag: 'camplugie' });
+    await Promise.all(subs.map(async (s) => {
+      try {
+        await webpush.sendNotification(
+          { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
+          payload
+        );
+      } catch (err) {
+        if (err.statusCode === 404 || err.statusCode === 410) {
+          await sb.from('push_subscriptions').delete().eq('endpoint', s.endpoint);
+        } else {
+          console.error('sendPush: delivery failed:', err.message);
+        }
+      }
+    }));
+  } catch (err) {
+    console.error('sendPush failed:', err.message);
+  }
+}
+
+// Writes the in-app notification row, emails the user, AND pushes a real
+// device notification. All three are wrapped so a failure in one (bad
+// email, Resend down, expired push subscription, etc.) never breaks the
+// calling payment/chat flow — it just logs and moves on.
+async function notifySeller(sb, { sellerId, type = 'order', title, body, url }) {
   try {
     await sb.from('notifications').insert({
       user_id: sellerId, type, title, body, is_read: false,
@@ -93,6 +135,8 @@ async function notifySeller(sb, { sellerId, type = 'order', title, body }) {
   } catch (err) {
     console.error('notifySeller: email failed:', err.message);
   }
+
+  await sendPush(sb, sellerId, { title, body, url });
 }
 
 // If this order's buyer was referred by an ambassador, credits that

@@ -173,6 +173,14 @@ window.CPPay = (function () {
     return post('paystack/create-recipient', { user_id: userId, account_number: accountNumber, bank_code: bankCode, bank_name: bankName });
   }
 
+  // Tops up the caller's own wallet balance via card/bank transfer. Reuses
+  // the same Paystack popup + server-side verify as an order payment —
+  // paystack-verify.js recognizes order_type 'wallet_topup' and credits
+  // the wallet instead of flipping an order to paid.
+  async function fundWallet({ userId, email, amountKobo }) {
+    return collectPayment({ email, amountKobo, orderType: 'wallet_topup', orderId: userId });
+  }
+
   // --- Wallet + P2P ---
   async function getWalletBalance(userId) {
     const { data, error } = await window.sb.from('wallets').select('balance_kobo').eq('user_id', userId).maybeSingle();
@@ -201,6 +209,6 @@ window.CPPay = (function () {
     payFoodOrder, releaseFoodOrder, cancelAndRefundFood,
     payWithWallet, chooseAndPay,
     resolveAccount, saveBankAccount,
-    getWalletBalance, p2pSend, withdraw, getTransactions,
+    getWalletBalance, fundWallet, p2pSend, withdraw, getTransactions,
   };
 })();

@@ -1,4 +1,6 @@
-// POST { email, amount_kobo, order_type: 'escrow' | 'food', order_id }
+// POST { email, amount_kobo, order_type: 'escrow' | 'food' | 'wallet_topup', order_id }
+// For 'wallet_topup', order_id is the funding user's own id (there's no
+// escrow_order/food_order row involved — see paystack-verify.js).
 // Returns { authorization_url, access_code, reference }
 const { paystack, setCors } = require('../_lib');
 
@@ -12,7 +14,7 @@ module.exports = async (req, res) => {
     if (!email || !amount_kobo || !order_type || !order_id) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
-    if (!['escrow', 'food'].includes(order_type)) {
+    if (!['escrow', 'food', 'wallet_topup'].includes(order_type)) {
       return res.status(400).json({ error: 'Invalid order_type' });
     }
 

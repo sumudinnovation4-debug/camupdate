@@ -1,4 +1,4 @@
-// POST { reference, order_type, order_id }
+// POST { reference, order_type: 'escrow' | 'food' | 'wallet_topup', order_id }
 // Verifies payment with Paystack (never trust the client on the AMOUNT —
 // that's always re-checked against Paystack's own record), then flips the
 // matching escrow_order/food_order to "paid" — money now sits with the
@@ -21,7 +21,7 @@ module.exports = async (req, res) => {
   try {
     const { reference, order_type, order_id } = req.body;
     if (!reference || !order_type || !order_id) return res.status(400).json({ error: 'Missing reference/order_type/order_id' });
-    if (!['escrow', 'food'].includes(order_type)) return res.status(400).json({ error: 'Invalid order_type' });
+    if (!['escrow', 'food', 'wallet_topup'].includes(order_type)) return res.status(400).json({ error: 'Invalid order_type' });
 
     const data = await paystack(`/transaction/verify/${encodeURIComponent(reference)}`);
     if (data.data.status !== 'success') {
@@ -30,6 +30,28 @@ module.exports = async (req, res) => {
 
     const amountPaid = data.data.amount; // kobo, confirmed by Paystack — this is the number we actually trust
     const sb = supabaseAdmin();
+
+    // Wallet top-up has no escrow_order/food_order row — order_id is just
+    // the funding user's own id — so it's handled entirely separately from
+    // the order-paid flow below.
+    if (order_type === 'wallet_topup') {
+      const userId = order_id;
+      // Idempotent on the Paystack reference: verify can get called twice
+      // (e.g. a flaky network retry) and must never credit the wallet twice.
+      const { data: already } = await sb.from('wallet_transactions').select('id').eq('reference', reference).maybeSingle();
+      if (already) return res.status(200).json({ ok: true, already: true });
+
+      const { data: wallet } = await sb.from('wallets').select('balance_kobo').eq('user_id', userId).maybeSingle();
+      const currentBalance = wallet?.balance_kobo || 0;
+      await sb.from('wallets').upsert({
+        user_id: userId, balance_kobo: currentBalance + amountPaid, updated_at: new Date().toISOString(),
+      });
+      await sb.from('wallet_transactions').insert({
+        user_id: userId, type: 'wallet_topup', amount_kobo: amountPaid,
+        note: 'Wallet funded via card/bank transfer', reference,
+      });
+      return res.status(200).json({ ok: true });
+    }
     const table = order_type === 'escrow' ? 'escrow_orders' : 'food_orders';
     const paidStatus = order_type === 'escrow' ? 'paid_escrow' : 'paid';
 

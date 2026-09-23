@@ -482,7 +482,7 @@ img { max-width: 100%; display: block; }
   display: flex; align-items: center; justify-content: center;
 }
 .photo-thumb .upload-progress {
-  position: absolute; inset: 0; background: rgba(9,7,20,.6); color: #fff; font-size: 10.5px; font-weight: 800;
+  position: absolute; top: 0; right: 0; bottom: 0; left: 0; background: rgba(9,7,20,.6); color: #fff; font-size: 10.5px; font-weight: 800;
   display: flex; align-items: center; justify-content: center;
 }
 .form-submit { width: 100%; background: var(--accent); color: #1A1200; border: none; border-radius: var(--radius-sm); padding: 15px; font-size: 15px; font-weight: 800; cursor: pointer; margin-top: 6px; }
@@ -660,7 +660,7 @@ img { max-width: 100%; display: block; }
 .switch { position: relative; width: 44px; height: 26px; flex-shrink: 0; }
 .switch input { opacity: 0; width: 0; height: 0; }
 .switch-track {
-  position: absolute; inset: 0; background: var(--surface3); border-radius: 999px; cursor: pointer;
+  position: absolute; top: 0; right: 0; bottom: 0; left: 0; background: var(--surface3); border-radius: 999px; cursor: pointer;
   transition: background .15s;
 }
 .switch-track::before {
@@ -900,7 +900,7 @@ img { max-width: 100%; display: block; }
 .call-icon-btn { width: 38px; height: 38px; border-radius: 50%; background: var(--surface2); border: 1px solid var(--border); color: var(--money); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
 .call-icon-btn svg { width: 17px; height: 17px; }
 .call-overlay {
-  position: fixed; inset: 0; z-index: 200; background: linear-gradient(180deg, var(--brand-dark), #0E0A1D 70%);
+  position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 200; background: linear-gradient(180deg, var(--brand-dark), #0E0A1D 70%);
   display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fff; text-align: center; padding: 24px;
 }
 .call-overlay .avatar { width: 96px; height: 96px; font-size: 32px; margin-bottom: 18px; }
@@ -978,12 +978,12 @@ img { max-width: 100%; display: block; }
 /* The whole page becomes a fixed app frame: header / scroller / composer.
    Only the message list scrolls — the header and composer never move,
    which is the single biggest thing that made the old chat feel "not WhatsApp". */
-body.chat-page { overflow: hidden; height: 100dvh; }
+body.chat-page { overflow: hidden; height: 100vh; height: 100dvh; }
 .chat-frame {
-  position: fixed; inset: 0; left: 50%; transform: translateX(-50%);
+  position: fixed; top: 0; right: 0; bottom: 0; left: 50%; transform: translateX(-50%);
   width: 100%; max-width: 480px;
   display: flex; flex-direction: column;
-  height: 100dvh;
+  height: 100vh; height: 100dvh;
   background: var(--bg-gradient), var(--bg);
   /* The slide-in panels park at translateX(100%) when closed. Without this
      they spill out of the frame and sit next to the chat on a wide screen. */
@@ -1098,7 +1098,7 @@ body.chat-page { overflow: hidden; height: 100dvh; }
 .msg-voice svg { width: 14px; height: 14px; }
 .msg-voice .vbar { flex: 1; height: 3px; border-radius: 3px; background: rgba(255,255,255,.3); position: relative; }
 .msg-row.theirs .msg-voice .vbar { background: rgba(255,255,255,.14); }
-.msg-voice .vbar i { position: absolute; inset: 0 auto 0 0; width: 0; border-radius: 3px; background: currentColor; display: block; }
+.msg-voice .vbar i { position: absolute; top: 0; right: auto; bottom: 0; left: 0; width: 0; border-radius: 3px; background: currentColor; display: block; }
 .msg-voice .vdur { font-size: 11px; opacity: .8; min-width: 30px; }
 
 /* ---- Separators / system pills ---- */
@@ -1184,7 +1184,7 @@ body.chat-page { overflow: hidden; height: 100dvh; }
 
 /* ---- Long-press action sheet ---- */
 .msg-sheet-backdrop {
-  position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 300;
+  position: fixed; top: 0; right: 0; bottom: 0; left: 0; background: rgba(0,0,0,.55); z-index: 300;
   display: none; align-items: flex-end; justify-content: center; backdrop-filter: blur(2px);
 }
 .msg-sheet-backdrop.show { display: flex; }
@@ -1210,7 +1210,7 @@ body.chat-page { overflow: hidden; height: 100dvh; }
 .msg-reacts span { background: var(--surface3); border: 1px solid var(--border); border-radius: 999px; padding: 1px 7px; font-size: 12px; }
 
 /* Image lightbox */
-.img-viewer { position: fixed; inset: 0; background: rgba(0,0,0,.94); z-index: 400; display: none; align-items: center; justify-content: center; }
+.img-viewer { position: fixed; top: 0; right: 0; bottom: 0; left: 0; background: rgba(0,0,0,.94); z-index: 400; display: none; align-items: center; justify-content: center; }
 .img-viewer.show { display: flex; }
 .img-viewer img { max-width: 100%; max-height: 100%; object-fit: contain; }
 .img-viewer button { position: absolute; top: calc(14px + var(--safe-top)); right: 16px; background: rgba(255,255,255,.16); border: none; color: #fff; width: 38px; height: 38px; border-radius: 50%; font-size: 20px; cursor: pointer; }
@@ -1255,7 +1255,7 @@ body.chat-page { overflow: hidden; height: 100dvh; }
 
 /* Incoming-call popup */
 .incoming-call {
-  position: fixed; inset: 0; z-index: 1000;
+  position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 1000;
   background: linear-gradient(180deg, var(--brand-dark), #0E0A1D 70%);
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   color: #fff; text-align: center;
@@ -1387,7 +1387,7 @@ mark.hit { background: var(--accent); color: #1A1200; border-radius: 3px; paddin
 
 /* ---- Group info panel ---- */
 .gi-panel {
-  position: absolute; inset: 0; z-index: 60;
+  position: absolute; top: 0; right: 0; bottom: 0; left: 0; z-index: 60;
   background: var(--bg-gradient), var(--bg);
   display: flex; flex-direction: column;
   transform: translateX(100%);

@@ -2126,7 +2126,7 @@ async function renderEscrowBox(listing, escrow) {
       await window.sb.from('escrow_orders').update({ dropoff_lat: loc.lat, dropoff_lng: loc.lng }).eq('id', escrow.id);
       const { data: { session } } = await window.sb.auth.getSession();
       btn.textContent = 'Opening payment…';
-      await window.CPPay.payEscrowOrder({ escrowOrderId: escrow.id, amountKobo: escrow.amount_kobo, email: session.user.email });
+      await window.CPPay.chooseAndPay({ orderType: 'escrow', orderId: escrow.id, amountKobo: escrow.amount_kobo, email: session.user.email, userId: session.user.id });
       renderListingChip(listing);
     } catch (err) { alert(err.message || 'Payment failed'); btn.disabled = false; btn.textContent = `💳 Pay ${window.CP.fmtNaira(listing.price)} to escrow`; }
   });

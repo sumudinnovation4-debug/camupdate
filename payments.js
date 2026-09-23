@@ -76,6 +76,84 @@ window.CPPay = (function () {
     return post('paystack/release', { order_type: 'escrow', order_id: escrowOrderId });
   }
 
+  // Pays for an already-created escrow/food order straight out of the
+  // buyer's wallet balance (server checks balance & debits atomically —
+  // see /api/_handlers/wallet-pay.js). Same resolved shape as collectPayment
+  // so callers don't need to branch on which method was used.
+  async function payWithWallet({ userId, orderType, orderId }) {
+    return post('wallet/pay', { user_id: userId, order_type: orderType, order_id: orderId });
+  }
+
+  let sheetStyleInjected = false;
+  function injectSheetStyle() {
+    if (sheetStyleInjected) return;
+    sheetStyleInjected = true;
+    const s = document.createElement('style');
+    s.textContent = `
+      .cppay-backdrop { position: fixed; inset: 0; background: rgba(5,3,12,.72); z-index: 9998;
+        display: flex; align-items: flex-end; justify-content: center; }
+      @media (min-width: 481px) { .cppay-backdrop { align-items: center; } }
+      .cppay-sheet { width: 100%; max-width: 420px; background: #171429; border: 1px solid rgba(255,255,255,.1);
+        border-radius: 20px 20px 0 0; padding: 20px 20px calc(env(safe-area-inset-bottom,0px) + 20px);
+        font-family: 'Satoshi', -apple-system, BlinkMacSystemFont, sans-serif; color: #F8F6FF; }
+      @media (min-width: 481px) { .cppay-sheet { border-radius: 20px; padding: 22px; } }
+      .cppay-sheet h3 { margin: 0 0 4px; font-size: 17px; font-weight: 700; }
+      .cppay-sheet p.cppay-amount { margin: 0 0 16px; font-size: 13px; color: #8D86AA; }
+      .cppay-opt { display: flex; align-items: center; justify-content: space-between; width: 100%;
+        background: #1F1B33; border: 1px solid rgba(255,255,255,.1); border-radius: 14px;
+        padding: 14px 16px; margin-bottom: 10px; font: inherit; color: inherit; cursor: pointer; text-align: left; }
+      .cppay-opt:disabled { opacity: .5; cursor: not-allowed; }
+      .cppay-opt b { display: block; font-size: 14.5px; }
+      .cppay-opt span { font-size: 12px; color: #8D86AA; }
+      .cppay-opt .cppay-chev { font-size: 18px; color: #8D86AA; }
+      .cppay-cancel { display: block; width: 100%; text-align: center; background: none; border: none;
+        color: #8D86AA; font: inherit; font-size: 13.5px; font-weight: 600; padding: 12px; margin-top: 4px; cursor: pointer; }
+    `;
+    document.head.appendChild(s);
+  }
+
+  // Shows a "Pay from Wallet" vs "Pay with Card/Bank" picker, then runs
+  // whichever the person picks. Resolves with the same shape collectPayment
+  // resolves with either way; rejects with a plain Error if they cancel.
+  function chooseAndPay({ orderType, orderId, amountKobo, email, userId }) {
+    injectSheetStyle();
+    return new Promise(async (resolve, reject) => {
+      let balanceKobo = 0;
+      try { balanceKobo = await getWalletBalance(userId); } catch (e) { /* treat as 0 */ }
+      const enough = balanceKobo >= amountKobo;
+
+      const backdrop = document.createElement('div');
+      backdrop.className = 'cppay-backdrop';
+      backdrop.innerHTML = `
+        <div class="cppay-sheet">
+          <h3>How would you like to pay?</h3>
+          <p class="cppay-amount">${fmtNaira(amountKobo)} total</p>
+          <button type="button" class="cppay-opt" id="cppayWalletBtn" ${enough ? '' : 'disabled'}>
+            <span><b>👛 Pay from Wallet</b><span>${enough ? `Balance: ${fmtNaira(balanceKobo)}` : `Only ${fmtNaira(balanceKobo)} available — top up or pay by card`}</span></span>
+            <span class="cppay-chev">›</span>
+          </button>
+          <button type="button" class="cppay-opt" id="cppayGatewayBtn">
+            <span><b>💳 Card / Bank Transfer</b><span>Pay securely via Paystack</span></span>
+            <span class="cppay-chev">›</span>
+          </button>
+          <button type="button" class="cppay-cancel" id="cppayCancelBtn">Cancel</button>
+        </div>`;
+      document.body.appendChild(backdrop);
+
+      function close() { backdrop.remove(); }
+      backdrop.addEventListener('click', (e) => { if (e.target === backdrop) { close(); reject(new Error('Payment cancelled')); } });
+      document.getElementById('cppayCancelBtn').addEventListener('click', () => { close(); reject(new Error('Payment cancelled')); });
+      document.getElementById('cppayWalletBtn').addEventListener('click', async () => {
+        close();
+        try { resolve(await payWithWallet({ userId, orderType, orderId })); } catch (e) { reject(e); }
+      });
+      document.getElementById('cppayGatewayBtn').addEventListener('click', async () => {
+        close();
+        try { resolve(await collectPayment({ email, amountKobo, orderType, orderId })); } catch (e) { reject(e); }
+      });
+    });
+  }
+
   // --- Food quick-order (Uber-Eats style, no chat) ---
   async function payFoodOrder({ foodOrderId, amountKobo, email }) {
     return collectPayment({ email, amountKobo, orderType: 'food', orderId: foodOrderId });
@@ -121,6 +199,7 @@ window.CPPay = (function () {
     nairaToKobo, fmtNaira,
     payEscrowOrder, confirmReceived, cancelAndRefundEscrow, swiftAutoRelease,
     payFoodOrder, releaseFoodOrder, cancelAndRefundFood,
+    payWithWallet, chooseAndPay,
     resolveAccount, saveBankAccount,
     getWalletBalance, p2pSend, withdraw, getTransactions,
   };

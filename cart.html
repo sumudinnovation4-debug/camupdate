@@ -1103,7 +1103,7 @@ document.getElementById('foodPayBtn')?.addEventListener('click', async (e) => {
         }).select().single();
         if (error) throw error;
 
-        await window.CPPay.payFoodOrder({ foodOrderId: order.id, amountKobo: amount_kobo, email });
+        await window.CPPay.chooseAndPay({ orderType: 'food', orderId: order.id, amountKobo: amount_kobo, email, userId: myUserId });
         for (const r of rows) await window.sb.from('cart_items').delete().eq('id', r.id);
       }
       alert('Order placed! Track it on your food orders page.');

@@ -2132,7 +2132,7 @@ async function loadActiveOrder(userId) {
         btn.disabled = true; btn.textContent = 'Opening payment…';
         try {
           const { data: { session } } = await window.sb.auth.getSession();
-          await window.CPPay.payEscrowOrder({ escrowOrderId: escrow.id, amountKobo: escrow.amount_kobo, email: session.user.email });
+          await window.CPPay.chooseAndPay({ orderType: 'escrow', orderId: escrow.id, amountKobo: escrow.amount_kobo, email: session.user.email, userId: session.user.id });
           loadActiveOrder(userId);
         } catch (e) {
           alert(e.message || 'Payment failed'); btn.disabled = false; btn.textContent = `Pay ${window.CP.fmtNaira(data.fee)}`;

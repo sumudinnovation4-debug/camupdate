@@ -1422,7 +1422,7 @@ async function orderNow(btn, buyerId, item, getQty, isFood, getVariant) {
           dropoff_lat, dropoff_lng, dropoff_note: dropoffNote, status: 'awaiting_payment',
         }).select().single();
         if (error) throw error;
-        await window.CPPay.payFoodOrder({ foodOrderId: order.id, amountKobo: amount_kobo, email });
+        await window.CPPay.chooseAndPay({ orderType: 'food', orderId: order.id, amountKobo: amount_kobo, email, userId: buyerId });
         alert('Order placed! Track it on your food orders page.');
         window.location.href = 'orders.html';
       } else {
@@ -1438,7 +1438,7 @@ async function orderNow(btn, buyerId, item, getQty, isFood, getVariant) {
         }).select().single();
         if (error) throw error;
 
-        await window.CPPay.payEscrowOrder({ escrowOrderId: order.id, amountKobo: amount_kobo, email });
+        await window.CPPay.chooseAndPay({ orderType: 'escrow', orderId: order.id, amountKobo: amount_kobo, email, userId: buyerId });
         alert('Order placed and paid! Head to the chat to track delivery and confirm once received.');
         window.location.href = `chat-thread.html?id=${conversationId}`;
       }

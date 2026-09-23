@@ -8,7 +8,7 @@ const webpush = require('web-push');
 // VAPID_PRIVATE_KEY is a secret: set it as a Vercel env var, never commit it.
 if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
   webpush.setVapidDetails(
-    process.env.VAPID_SUBJECT || 'mailto:support@camplugie.com',
+    process.env.VAPID_SUBJECT || 'mailto:info@camplugie.com',
     process.env.VAPID_PUBLIC_KEY,
     process.env.VAPID_PRIVATE_KEY
   );
@@ -114,14 +114,19 @@ async function sendPush(sb, userId, { title, body, url }) {
   }
 }
 
-// Writes the in-app notification row, emails the user, AND pushes a real
-// device notification. All three are wrapped so a failure in one (bad
-// email, Resend down, expired push subscription, etc.) never breaks the
-// calling payment/chat flow — it just logs and moves on.
-async function notifySeller(sb, { sellerId, type = 'order', title, body, url }) {
+// Writes the in-app notification row and emails the user. The device push
+// is handled separately by a Supabase Database Webhook that fires on every
+// INSERT into `notifications` (see sql/camplugie-push-webhook.sql +
+// /api/send-push.js) — that way ANY notification, from this function or
+// any other insert anywhere in the app (likes, comments, follows, swift
+// status, admin actions...), pushes automatically with zero extra code per
+// call site. `url` still gets stored in `data.url` so send-push.js and the
+// notifications page both know where a tap should go.
+async function notifySeller(sb, { sellerId, type = 'order', title, body, url, data = {} }) {
   try {
     await sb.from('notifications').insert({
       user_id: sellerId, type, title, body, is_read: false,
+      data: url ? { ...data, url } : data,
     });
   } catch (err) {
     console.error('notifySeller: in-app notification failed:', err.message);
@@ -135,8 +140,6 @@ async function notifySeller(sb, { sellerId, type = 'order', title, body, url }) 
   } catch (err) {
     console.error('notifySeller: email failed:', err.message);
   }
-
-  await sendPush(sb, sellerId, { title, body, url });
 }
 
 // If this order's buyer was referred by an ambassador, credits that
@@ -238,5 +241,5 @@ async function finalizeOrderPaid(sb, order_type, order) {
   catch (err) { console.error('decrementStockForOrder failed:', err.message); }
 }
 
-module.exports = { supabaseAdmin, paystack, computeCommission, setCors, notifySeller, payAmbassadorCommission, finalizeOrderPaid, COMMISSION_RATE, AMBASSADOR_SHARE };
+module.exports = { supabaseAdmin, paystack, computeCommission, setCors, notifySeller, sendPush, payAmbassadorCommission, finalizeOrderPaid, COMMISSION_RATE, AMBASSADOR_SHARE };
         

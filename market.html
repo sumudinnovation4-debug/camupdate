@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>(function(){try{var t=localStorage.getItem('cp-theme');if(t==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}})();</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Camplugie — Market</title>
@@ -9,6 +10,41 @@
 
 /* ===== Design tokens (matches Camplugie's existing dark theme) ===== */
 :root {
+  --nav-h: 58px;
+  --bottom-h: 68px;
+  --radius: 18px;
+  --radius-sm: 12px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  /* ===== Light theme (default) ===== */
+  --brand: #7C3AED;
+  --brand-dark: #5B21B6;
+  --brand-soft: rgba(124,58,237,0.10);
+  --accent: #B45309;
+  --accent-soft: rgba(180,83,9,0.10);
+  --money: #059669;
+  --danger: #E11D48;
+
+  --bg: #FAFAFC;
+  --bg-gradient: radial-gradient(circle at 20% -10%, rgba(124,58,237,0.07), transparent 40%), linear-gradient(180deg, #FFFFFF 0%, #FAFAFC 100%);
+  --surface: #FFFFFF;
+  --surface2: #F4F3F8;
+  --surface3: #ECEAF3;
+  --border: rgba(20,10,40,0.09);
+
+  --text: #16121F;
+  --text2: #4B455C;
+  --text3: #7A7390;
+
+  --shadow: 0 10px 26px rgba(20,10,40,0.08);
+  --shadow-lg: 0 24px 60px rgba(20,10,40,0.14);
+
+  --glass: rgba(255,255,255,0.85);
+  --glass-strong: rgba(255,255,255,0.92);
+}
+
+:root[data-theme="dark"] {
   --brand: #A78BFA;
   --brand-dark: #7C3AED;
   --brand-soft: rgba(167, 139, 250, 0.14);
@@ -28,14 +64,11 @@
   --text2: #C9C3DE;
   --text3: #8D86AA;
 
-  --nav-h: 58px;
-  --bottom-h: 68px;
-  --radius: 18px;
-  --radius-sm: 12px;
   --shadow: 0 14px 38px rgba(0,0,0,0.28);
   --shadow-lg: 0 24px 80px rgba(0,0,0,0.48);
-  --safe-top: env(safe-area-inset-top, 0px);
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  --glass: rgba(9, 7, 20, 0.88);
+  --glass-strong: rgba(18, 16, 29, 0.92);
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -72,7 +105,7 @@ img { max-width: 100%; display: block; }
   justify-content: space-between;
   gap: 12px;
   padding: calc(var(--safe-top) + 14px) 16px 12px;
-  background: rgba(9, 7, 20, 0.88);
+  background: var(--glass);
   backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--border);
 }
@@ -242,28 +275,29 @@ img { max-width: 100%; display: block; }
 .cp-store-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  padding: 6px 16px 8px;
+  gap: 16px;
+  padding: 8px 16px 8px;
 }
 .store-card {
   text-align: left;
   border: 1px solid var(--border);
   background: var(--surface);
-  border-radius: 16px;
+  border-radius: 18px;
   overflow: hidden;
   cursor: pointer;
   padding: 0;
   display: flex;
   flex-direction: column;
   transition: transform .12s ease;
+  box-shadow: var(--shadow);
 }
 .store-card:active { transform: scale(0.97); }
 .store-card-media {
   position: relative;
   width: 100%;
-  aspect-ratio: 1 / 1;
+  aspect-ratio: 4 / 5;
   display: flex; align-items: center; justify-content: center;
-  font-size: 44px;
+  font-size: 56px;
   overflow: hidden;
 }
 .store-like {
@@ -285,18 +319,21 @@ img { max-width: 100%; display: block; }
 }
 .store-delete svg { width: 14px; height: 14px; }
 .store-delete:active { background: #DC2626; }
-.store-card-body { padding: 10px 11px 12px; }
-.store-price { font-weight: 800; font-size: 16px; color: var(--text); }
+.store-card-body { padding: 12px 13px 14px; }
+.store-price { font-weight: 800; font-size: 18px; color: var(--text); }
 .store-title {
-  font-size: 12.5px; color: var(--text2); margin: 3px 0 9px; line-height: 1.35;
+  font-size: 13.5px; color: var(--text2); margin: 4px 0 10px; line-height: 1.35;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
-.store-seller { display: flex; align-items: center; gap: 6px; }
+.store-seller { display: flex; align-items: center; gap: 7px; }
 .store-av {
-  width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0;
+  width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
   background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9.5px; font-weight: 800; color: #fff; overflow: hidden;
 }
-.store-seller-name { font-size: 11px; color: var(--text3); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.store-av img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.store-seller-name { font-size: 12px; color: var(--text3); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .store-badge { position: absolute; font-size: 9.5px; font-weight: 800; padding: 3px 7px; border-radius: 6px; color: #fff; letter-spacing: .3px; }
 .store-badge.sold { top: 8px; left: 8px; background: rgba(9,7,20,.75); }
 .store-badge.new { top: 8px; left: 8px; background: #16A34A; }
@@ -316,7 +353,7 @@ img { max-width: 100%; display: block; }
   width: 100%; max-width: 480px;
   height: calc(var(--bottom-h) + var(--safe-bottom));
   padding-bottom: var(--safe-bottom);
-  background: rgba(18, 16, 29, 0.92);
+  background: var(--glass-strong);
   backdrop-filter: blur(16px);
   border-top: 1px solid var(--border);
   display: flex; align-items: center; justify-content: space-around;
@@ -352,7 +389,7 @@ img { max-width: 100%; display: block; }
   display: flex; align-items: center; justify-content: space-between;
   gap: 12px;
   padding: calc(var(--safe-top) + 14px) 16px 12px;
-  background: rgba(9, 7, 20, 0.88);
+  background: var(--glass);
   backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--border);
 }
@@ -1038,6 +1075,10 @@ function renderCard(item, i) {
   const bg = TILE_COLORS[i % TILE_COLORS.length];
   const emoji = CATEGORY_EMOJI[(item.category || '').toLowerCase()] || '🛍';
   const seller = item.profiles?.full_name || item.profiles?.username || 'Camplugie seller';
+  const sellerAvatarUrl = item.profiles?.avatar_url;
+  const sellerAvatar = sellerAvatarUrl
+    ? `<img src="${CP.esc(sellerAvatarUrl)}" alt="" loading="lazy">`
+    : CP.esc(window.CP.initials(seller));
   const media = item.media_urls?.[0];
   const isSold = item.status === 'sold';
   const isNew = !isSold && item.created_at && (Date.now() - new Date(item.created_at).getTime()) < 3 * 24 * 60 * 60 * 1000;
@@ -1062,7 +1103,7 @@ function renderCard(item, i) {
         <div class="store-title">${CP.esc(item.title)}</div>
         <div class="store-seller">
           ${rating ? `<span class="store-rating">★ ${Number(rating).toFixed(1)}</span>` : ''}
-          <span class="store-av"></span>
+          <span class="store-av">${sellerAvatar}</span>
           <span class="store-seller-name">${seller}${isVerified ? ' <span class="store-verified">✓</span>' : ''}</span>
         </div>
       </div>
@@ -1307,5 +1348,20 @@ if ('serviceWorker' in navigator) {
 }
 </script>
 <script src="incoming-call.js?v=1"></script>
+<button id="cpThemeToggle" aria-label="Toggle dark mode" style="position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 84px);right:14px;z-index:999;width:36px;height:36px;border-radius:50%;border:1px solid var(--border);background:var(--surface2);color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:var(--shadow);font-size:16px;line-height:1;">🌙</button>
+<script>(function(){
+  var btn = document.getElementById('cpThemeToggle');
+  if (!btn) return;
+  function isDark(){ return document.documentElement.getAttribute('data-theme') === 'dark'; }
+  function sync(){ btn.textContent = isDark() ? '☀️' : '🌙'; }
+  sync();
+  btn.addEventListener('click', function(){
+    var next = isDark() ? '' : 'dark';
+    if (next) { document.documentElement.setAttribute('data-theme','dark'); }
+    else { document.documentElement.removeAttribute('data-theme'); }
+    try { localStorage.setItem('cp-theme', next || 'light'); } catch(e){}
+    sync();
+  });
+})();</script>
 </body>
 </html>

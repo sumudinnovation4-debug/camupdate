@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>(function(){try{var t=localStorage.getItem('cp-theme');if(t==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}})();</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Camplugie — Privacy Policy</title>
@@ -11,13 +12,65 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Clash+Display:wght@600;700&family=Satoshi:wght@400;500;700;900&display=swap');
 :root {
-  --brand: #A78BFA; --brand-dark: #7C3AED; --brand-soft: rgba(167,139,250,0.14);
+  --nav-h: 58px;
+  --bottom-h: 68px;
+  --radius: 18px;
+  --radius-sm: 12px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  /* ===== Light theme (default) ===== */
+  --brand: #7C3AED;
+  --brand-dark: #5B21B6;
+  --brand-soft: rgba(124,58,237,0.10);
+  --accent: #B45309;
+  --accent-soft: rgba(180,83,9,0.10);
+  --money: #059669;
+  --danger: #E11D48;
+
+  --bg: #FAFAFC;
+  --bg-gradient: radial-gradient(circle at 20% -10%, rgba(124,58,237,0.07), transparent 40%), linear-gradient(180deg, #FFFFFF 0%, #FAFAFC 100%);
+  --surface: #FFFFFF;
+  --surface2: #F4F3F8;
+  --surface3: #ECEAF3;
+  --border: rgba(20,10,40,0.09);
+
+  --text: #16121F;
+  --text2: #4B455C;
+  --text3: #7A7390;
+
+  --shadow: 0 10px 26px rgba(20,10,40,0.08);
+  --shadow-lg: 0 24px 60px rgba(20,10,40,0.14);
+
+  --glass: rgba(255,255,255,0.85);
+  --glass-strong: rgba(255,255,255,0.92);
+}
+
+:root[data-theme="dark"] {
+  --brand: #A78BFA;
+  --brand-dark: #7C3AED;
+  --brand-soft: rgba(167, 139, 250, 0.14);
+  --accent: #FBBF24;
+  --accent-soft: rgba(251, 191, 36, 0.14);
+  --money: #34D399;
+  --danger: #FB7185;
+
   --bg: #090714;
   --bg-gradient: radial-gradient(circle at 20% -10%, rgba(124,58,237,0.34), transparent 36%), linear-gradient(180deg, #0E0A1D 0%, #090714 100%);
-  --surface: #12101D; --surface2: #1A1729; --border: rgba(255,255,255,0.10);
-  --text: #F8F6FF; --text2: #C9C3DE; --text3: #8D86AA;
-  --radius: 18px; --radius-sm: 12px;
-  --safe-top: env(safe-area-inset-top, 0px); --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --surface: #12101D;
+  --surface2: #1A1729;
+  --surface3: #242039;
+  --border: rgba(255,255,255,0.10);
+
+  --text: #F8F6FF;
+  --text2: #C9C3DE;
+  --text3: #8D86AA;
+
+  --shadow: 0 14px 38px rgba(0,0,0,0.28);
+  --shadow-lg: 0 24px 80px rgba(0,0,0,0.48);
+
+  --glass: rgba(9, 7, 20, 0.88);
+  --glass-strong: rgba(18, 16, 29, 0.92);
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; padding: 0; }
@@ -176,5 +229,20 @@ footer { text-align: center; color: var(--text3); font-size: 12px; margin-top: 2
 
   <footer>© 2026 Camplugie. All rights reserved.</footer>
 </div>
+<button id="cpThemeToggle" aria-label="Toggle dark mode" style="position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 84px);right:14px;z-index:999;width:36px;height:36px;border-radius:50%;border:1px solid var(--border);background:var(--surface2);color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:var(--shadow);font-size:16px;line-height:1;">🌙</button>
+<script>(function(){
+  var btn = document.getElementById('cpThemeToggle');
+  if (!btn) return;
+  function isDark(){ return document.documentElement.getAttribute('data-theme') === 'dark'; }
+  function sync(){ btn.textContent = isDark() ? '☀️' : '🌙'; }
+  sync();
+  btn.addEventListener('click', function(){
+    var next = isDark() ? '' : 'dark';
+    if (next) { document.documentElement.setAttribute('data-theme','dark'); }
+    else { document.documentElement.removeAttribute('data-theme'); }
+    try { localStorage.setItem('cp-theme', next || 'light'); } catch(e){}
+    sync();
+  });
+})();</script>
 </body>
 </html>

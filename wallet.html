@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>(function(){try{var t=localStorage.getItem('cp-theme');if(t==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}})();</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Camplugie — Wallet</title>
@@ -357,5 +358,20 @@ if ('serviceWorker' in navigator) {
 }
 </script>
 <script src="incoming-call.js?v=1"></script>
+<button id="cpThemeToggle" aria-label="Toggle dark mode" style="position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 84px);right:14px;z-index:999;width:36px;height:36px;border-radius:50%;border:1px solid var(--border);background:var(--surface2);color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:var(--shadow);font-size:16px;line-height:1;">🌙</button>
+<script>(function(){
+  var btn = document.getElementById('cpThemeToggle');
+  if (!btn) return;
+  function isDark(){ return document.documentElement.getAttribute('data-theme') === 'dark'; }
+  function sync(){ btn.textContent = isDark() ? '☀️' : '🌙'; }
+  sync();
+  btn.addEventListener('click', function(){
+    var next = isDark() ? '' : 'dark';
+    if (next) { document.documentElement.setAttribute('data-theme','dark'); }
+    else { document.documentElement.removeAttribute('data-theme'); }
+    try { localStorage.setItem('cp-theme', next || 'light'); } catch(e){}
+    sync();
+  });
+})();</script>
 </body>
 </html>

@@ -1599,15 +1599,12 @@ async function startAsCaller() {
     video: videoOn,
   };
   ringChannel.send({ type: 'broadcast', event: 'incoming', payload: ringPayload });
-  // Also ring their phone/browser if Camplugie is closed (device push).
-  try {
-    const { data: { session: pushSess } } = await window.sb.auth.getSession();
-    fetch('/api/notify-call', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${pushSess?.access_token || ''}` },
-      body: JSON.stringify({ callee_id: peerId, call_channel: channelName, video: videoOn }),
-    }).catch(err => console.error('notify-call failed:', err));
-  } catch (err) { console.error('notify-call failed:', err); }
+  // Realtime broadcast above only reaches them if their tab is already
+  // open and subscribed. Push covers the rest — closed tab, phone locked.
+  fetch('/api/notify-call', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ peer_id: peerId, caller_id: myUserId, video: videoOn }),
+  }).catch(err => console.error('notify-call failed:', err));
   // Re-ring a few times in case their page was mid-navigation.
   let rings = 0;
   const reRing = setInterval(() => {

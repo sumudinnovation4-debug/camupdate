@@ -168,8 +168,13 @@ async function loadSellingOrders() {
 
   list.querySelectorAll('[data-deliver]').forEach(btn => btn.addEventListener('click', async (e) => {
     e.target.disabled = true; e.target.textContent = 'Updating…';
-    const { error: updateError } = await window.sb.from('food_orders').update({ status: 'delivered', updated_at: new Date().toISOString() }).eq('id', e.target.dataset.deliver);
+    const orderId = e.target.dataset.deliver;
+    const { error: updateError } = await window.sb.from('food_orders').update({ status: 'delivered', updated_at: new Date().toISOString() }).eq('id', orderId);
     if (updateError) { alert(updateError.message || 'Could not update order'); e.target.disabled = false; e.target.textContent = '🛵 Mark delivered'; return; }
+    fetch('/api/notify-order-status', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ order_id: orderId, status: 'delivered' }),
+    }).catch(err => console.error('notify-order-status failed:', err));
     loadOrders();
   }));
 }

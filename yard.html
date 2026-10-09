@@ -2173,6 +2173,10 @@ document.addEventListener('click', async (e) => {
   } else {
     const { error } = await window.sb.from('post_likes').upsert({ post_id: postId, user_id: myUserId });
     if (error) console.error('Like error:', error);
+    else fetch('/api/notify-like', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ post_id: postId, liker_id: myUserId }),
+    }).catch(err => console.error('notify-like failed:', err));
   }
 });
 
@@ -2348,8 +2352,15 @@ async function sendComment() {
   if (!content || !activePostId || !myUserId) return;
   input.value = '';
 
-  const { error } = await window.sb.from('post_comments').insert({ post_id: activePostId, author_id: myUserId, content });
+  const { data: newComment, error } = await window.sb.from('post_comments').insert({ post_id: activePostId, author_id: myUserId, content }).select('id').single();
   if (error) { console.error('Comment error:', error); alert('Could not post comment.'); return; }
+
+  if (newComment?.id) {
+    fetch('/api/notify-comment', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ post_id: activePostId, comment_id: newComment.id }),
+    }).catch(err => console.error('notify-comment failed:', err));
+  }
 
   // Keep the on-screen comment count in sync without a full feed reload
   const card = document.querySelector(`.post-card[data-id="${activePostId}"]`);

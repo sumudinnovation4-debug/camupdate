@@ -2307,6 +2307,13 @@ async function sendMessage(extra = {}) {
     return;
   }
 
+  // Device push to the other members (skips muted / blocked; @mentions still get through).
+  window.sb.auth.getSession().then(({ data: { session: ps } }) => fetch('/api/notify-group-message', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ps?.access_token || ''}` },
+    body: JSON.stringify({ group_id: groupId, message_id: sent.id }),
+  })).catch(err => console.error('notify-group-message failed:', err));
+
   if (i !== -1) { messages.splice(i, 1); byId.delete(tempId); }
   if (!byId.has(sent.id)) { byId.set(sent.id, sent); messages.push(decorate(sent)); }
   render(); scroller.toBottom(true);

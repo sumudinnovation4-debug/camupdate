@@ -1018,6 +1018,9 @@ document.addEventListener('cp-ready', (e) => {
     const input = document.getElementById(`toggle-${key}`);
     if (input && typeof profile?.[key] === 'boolean') input.checked = profile[key];
   });
+  // Show the truth: the push toggle is only "on" if this device is actually allowed to receive pushes.
+  const pushToggle = document.getElementById('toggle-push_enabled');
+  if (pushToggle && !(window.CamplugiePWA?.push?.permission?.() === 'granted' && profile?.push_enabled !== false)) pushToggle.checked = false;
 });
 
 TOGGLE_KEYS.forEach(key => {

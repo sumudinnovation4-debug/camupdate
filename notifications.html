@@ -1550,12 +1550,13 @@ $('convoSearchInput').addEventListener('input', applyConvoSearch);
 
 /* ============ ACTIVITY ============ */
 
-const ICONS = { like: '❤️', comment: '💬', repost: '🔁', order: '💰', payment: '💰', escrow: '🔒', message: '✉️', plug: '🤝', mention: '@', delivery: '🛵', wallet: '👛', system: '🔔' };
+const ICONS = { like: '❤️', comment: '💬', repost: '🔁', order: '💰', payment: '💰', escrow: '🔒', message: '✉️', plug: '🤝', mention: '@', delivery: '🛵', wallet: '👛', call: '📞', group: '👥', system: '🔔' };
 const KINDS = { order: 'money', payment: 'money', escrow: 'money', wallet: 'money', delivery: 'money', system: 'system' };
 
 function targetFor(a) {
   const d = a.data || {};
   if (a.type === 'message' && d.conversation_id) return `chat-thread.html?id=${d.conversation_id}`;
+  if (d.url) return d.url.replace(/^\//, '');
   if (d.listing_id) return `listing.html?id=${d.listing_id}`;
   if (d.post_id) return `yard.html?post=${d.post_id}`;
   if (d.order_id || ['order', 'escrow', 'payment'].includes(a.type)) return 'orders.html';

@@ -326,8 +326,12 @@
   // push_subscriptions (RLS lets a user write only their own rows) so the
   // server can fan pushes out to it. Resolves false (never throws) if the
   // user declines or the browser doesn't support push.
-  function subscribePush(userId) {
+  // opts.silent = true  -> never shows a permission prompt (only re-syncs if already granted)
+  // opts.confirm = true -> shows a "notifications are on" banner so the user sees it work
+  function subscribePush(userId, opts) {
+    opts = opts || {};
     if (!pushSupported() || !userId || !window.sb) return Promise.resolve(false);
+    if (opts.silent && Notification.permission !== 'granted') return Promise.resolve(false);
     return Notification.requestPermission().then(function (perm) {
       if (perm !== 'granted') return false;
       return navigator.serviceWorker.ready.then(function (reg) {
@@ -336,13 +340,20 @@
             userVisibleOnly: true,
             applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
           });
+        }).then(function (sub) {
+          var j = sub.toJSON();
+          return window.sb.from('push_subscriptions').upsert({
+            user_id: userId, endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth,
+          }, { onConflict: 'endpoint' }).then(function (r) {
+            if (r && r.error) { console.error('[pwa] saving push subscription failed:', r.error); return false; }
+            if (!opts.silent) { try { window.sb.from('profiles').update({ push_enabled: true }).eq('id', userId).then(function () {}, function () {}); } catch (e) {} }
+            if (opts.confirm) {
+              try { reg.showNotification('Notifications are on 🔔', { body: "You'll now get messages, calls, orders and more — even when Camplugie is closed.", icon: '/icons/icon-192.png', badge: '/icons/icon-96.png', tag: 'cp-welcome' }); } catch (e) {}
+            }
+            return true;
+          });
         });
-      }).then(function (sub) {
-        var j = sub.toJSON();
-        return window.sb.from('push_subscriptions').upsert({
-          user_id: userId, endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth,
-        }, { onConflict: 'endpoint' });
-      }).then(function () { return true; });
+      });
     }).catch(function (e) { console.warn('[pwa] push subscribe failed', e); return false; });
   }
 
@@ -399,15 +410,75 @@
     Bar.start();
   }, true);
 
+  /* ---------- "Turn on notifications" banner ----------
+     Browsers only allow a permission prompt from a real tap, so we can't just ask on load.
+     This shows a one-tap banner once the user is signed in (and never to someone who has
+     already said yes/no, or switched push off in Settings). */
+  var NO_PUSH_PROMPT = ['offline', 'call', 'group-call', 'turn-test', 'admin', 'download', 'preview',
+                        'auth', 'onboarding', 'verify-email', 'banned'];
+  addStyle('cp-push-css', [
+    '#cp-push{position:fixed;left:12px;right:12px;top:calc(10px + env(safe-area-inset-top,0px));z-index:2147483250;display:flex;align-items:center;gap:12px;',
+    'padding:12px 12px 12px 14px;border-radius:18px;color:#F8F6FF;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;max-width:460px;margin:0 auto;',
+    'background:linear-gradient(135deg,rgba(38,28,86,.97),rgba(18,16,29,.97));border:1px solid rgba(167,139,250,.32);box-shadow:0 18px 44px rgba(0,0,0,.5);',
+    'transform:translateY(-30px);opacity:0;transition:all .38s cubic-bezier(.2,.9,.3,1.1)}',
+    '#cp-push.on{transform:none;opacity:1}',
+    '#cp-push .em{font-size:26px;flex:none}#cp-push .t{flex:1;min-width:0}#cp-push .t b{display:block;font-size:14.5px;margin-bottom:2px}',
+    '#cp-push .t span{display:block;font-size:12.5px;color:#C9C3DE;line-height:1.35}',
+    '#cp-push .go{background:linear-gradient(135deg,#7C3AED,#4F8DF7);color:#fff;border:0;border-radius:12px;padding:10px 16px;font:700 13.5px system-ui,sans-serif;cursor:pointer;flex:none}',
+    '#cp-push .x{background:none;border:0;color:#8D86AA;font-size:18px;cursor:pointer;padding:4px 6px;flex:none}'
+  ].join(''));
+
+  var pushBannerEl = null;
+  function pushSnoozed() { return Date.now() < (+store('cp_push_snooze') || 0); }
+  function removePushBanner() {
+    if (!pushBannerEl) return; var b = pushBannerEl; pushBannerEl = null;
+    b.classList.remove('on'); setTimeout(function () { b.parentNode && b.parentNode.removeChild(b); }, 400);
+  }
+  function showPushBanner(userId) {
+    if (pushBannerEl || !pushSupported() || has(NO_PUSH_PROMPT) || pushSnoozed()) return;
+    if (Notification.permission !== 'default') return;
+    // iPhone/iPad only allow web push for an app that's been added to the Home Screen.
+    if (isIOS() && !isStandalone()) return;
+    if (inAppBrowser()) return;
+    pushBannerEl = doc.createElement('div'); pushBannerEl.id = 'cp-push'; pushBannerEl.setAttribute('role', 'dialog');
+    pushBannerEl.innerHTML = '<div class="em">🔔</div><div class="t"><b>Turn on notifications</b><span>Get messages, calls, orders and likes on this device — even when Camplugie is closed.</span></div>' +
+      '<button class="go">Turn on</button><button class="x" aria-label="Not now">&#10005;</button>';
+    (doc.body || root).appendChild(pushBannerEl);
+    pushBannerEl.querySelector('.go').onclick = function () {
+      removePushBanner();
+      subscribePush(userId, { confirm: true }).then(function (ok) {
+        if (!ok && pushPermission() === 'denied') toast('Notifications are blocked — enable them for Camplugie in your browser/site settings.', null, null, 8000);
+      });
+    };
+    pushBannerEl.querySelector('.x').onclick = function () {
+      var n = (+store('cp_push_dismissed') || 0) + 1; store('cp_push_dismissed', String(n));
+      store('cp_push_snooze', String(Date.now() + (n >= 3 ? 30 : 3) * 864e5));
+      removePushBanner();
+    };
+    requestAnimationFrame(function () { requestAnimationFrame(function () { pushBannerEl && pushBannerEl.classList.add('on'); }); });
+  }
+
   // Fires on every protected page (each one dispatches 'cp-ready' after
-  // loading the session + profile). Keeps this device's subscription alive
-  // without ever showing a permission prompt unless one is actually needed.
+  // loading the session + profile).
+  //  - Already allowed on this device -> quietly re-register it every visit, so a rotated or
+  //    cleared subscription heals itself (this is what keeps phone notifications reliable).
+  //  - Not asked yet -> show the one-tap banner.
+  // Only an explicit push_enabled === false (the Settings toggle) is treated as "off";
+  // a brand-new account has push_enabled = null and should be offered notifications.
   doc.addEventListener('cp-ready', function (e) {
     var profile = e.detail && e.detail.profile, user = e.detail && e.detail.user;
-    if (profile && profile.push_enabled && pushPermission() === 'granted' && user) {
-      subscribePush(user.id);
-    }
+    if (!user || !pushSupported()) return;
+    if (profile && profile.push_enabled === false) return;
+    if (pushPermission() === 'granted') { subscribePush(user.id, { silent: true }); return; }
+    setTimeout(function () { showPushBanner(user.id); }, 4000);
   });
+
+  // The service worker tells us when the browser rotated this device's subscription.
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', function (ev) {
+      if (ev.data && ev.data.type === 'PUSH_RESUBSCRIBE' && window.CP_USER) subscribePush(window.CP_USER.id, { silent: true });
+    });
+  }
 
   window.CamplugiePWA = {
     apkUrl: APK_URL,

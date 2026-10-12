@@ -28,12 +28,20 @@ module.exports = async (req, res) => {
     if (!row || !row.user_id) return res.status(200).json({ ok: true, skipped: 'no record' });
 
     const sb = supabaseAdmin();
-    await sendPush(sb, row.user_id, {
+    // Emails reuse `body` and so contain "Reply on Camplugie: https://…" links.
+    // A phone notification should only show the short text, so rows can carry
+    // a cleaner `data.push_body`; otherwise strip the link footer.
+    const cleanBody = row.data?.push_body
+      || String(row.body || '').split('\n\n')[0].replace(/\s*https?:\/\/\S+/g, '').trim();
+
+    const result = await sendPush(sb, row.user_id, {
       title: row.title || 'Camplugie',
-      body: row.body || '',
+      body: cleanBody,
       url: row.data?.url,
+      type: row.type,
+      tag: row.data?.tag || (row.data?.url ? `${row.type || 'n'}:${row.data.url}` : row.type),
     });
-    return res.status(200).json({ ok: true });
+    return res.status(200).json({ ok: true, ...result });
   } catch (err) {
     console.error('send-push failed:', err.message);
     return res.status(500).json({ error: err.message });

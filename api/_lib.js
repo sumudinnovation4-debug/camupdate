@@ -84,34 +84,62 @@ async function sendEmail({ to, subject, text }) {
   }
 }
 
+// Which profile toggle (Settings → Notifications) governs which kind of push.
+// Anything not listed here (security alerts, admin messages…) always goes
+// through as long as the master "push_enabled" switch is on.
+const PUSH_PREF_BY_TYPE = {
+  message: 'notify_messages', group_message: 'notify_messages', mention: 'notify_messages',
+  order: 'notify_orders', swift: 'notify_orders', payment: 'notify_orders', escrow: 'notify_orders',
+  like: 'notify_yard', comment: 'notify_yard', follow: 'notify_yard', yard: 'notify_yard',
+};
+
 // Pushes a real device notification to every device this user has ever
 // subscribed on (push_subscriptions can hold several rows per user — one
-// per browser/device). A dead subscription (410 Gone / 404) is deleted so
-// it stops being retried on every future notification.
-async function sendPush(sb, userId, { title, body, url }) {
-  if (!process.env.VAPID_PRIVATE_KEY) return; // not configured yet — no-op
+// per browser/device). Honours the person's own switches in Settings. A dead
+// subscription (410 Gone / 404) is deleted so it stops being retried.
+// Returns { sent, failed, skipped } so callers/logs can see what happened.
+async function sendPush(sb, userId, { title, body, url, type, tag, icon }) {
+  const result = { sent: 0, failed: 0, skipped: null };
+  if (!process.env.VAPID_PRIVATE_KEY || !process.env.VAPID_PUBLIC_KEY) { result.skipped = 'vapid-not-configured'; return result; }
   try {
-    const { data: subs } = await sb.from('push_subscriptions').select('*').eq('user_id', userId);
-    if (!subs || !subs.length) return;
+    const { data: prefs } = await sb.from('profiles').select('*').eq('id', userId).maybeSingle();
+    if (prefs && prefs.push_enabled === false) { result.skipped = 'push-disabled'; return result; }
+    const prefKey = PUSH_PREF_BY_TYPE[type];
+    if (prefs && prefKey && prefs[prefKey] === false) { result.skipped = `${prefKey}-off`; return result; }
 
-    const payload = JSON.stringify({ title, body, url: url || '/notifications.html', tag: 'camplugie' });
+    const { data: subs } = await sb.from('push_subscriptions').select('*').eq('user_id', userId);
+    if (!subs || !subs.length) { result.skipped = 'no-subscriptions'; return result; }
+
+    const payload = JSON.stringify({
+      title: title || 'Camplugie',
+      body: (body || '').slice(0, 180),
+      url: url || '/notifications.html',
+      type: type || 'general',
+      tag: tag || type || 'camplugie',
+      icon, ts: Date.now(),
+    });
     await Promise.all(subs.map(async (s) => {
       try {
         await webpush.sendNotification(
           { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
-          payload
+          payload,
+          { TTL: 60 * 60 * 24, urgency: 'high' }
         );
+        result.sent++;
       } catch (err) {
+        result.failed++;
         if (err.statusCode === 404 || err.statusCode === 410) {
           await sb.from('push_subscriptions').delete().eq('endpoint', s.endpoint);
         } else {
-          console.error('sendPush: delivery failed:', err.message);
+          console.error('sendPush: delivery failed:', err.statusCode, err.message);
         }
       }
     }));
   } catch (err) {
     console.error('sendPush failed:', err.message);
+    result.skipped = 'error';
   }
+  return result;
 }
 
 // Writes the in-app notification row and emails the user. The device push

@@ -57,6 +57,7 @@ module.exports = async (req, res) => {
       title: `New message from ${senderName}`,
       body: `${preview}${listingTag}\n\nReply on Camplugie: https://camplugie.com/chat-thread.html?id=${conversation_id}`,
       url: `/chat-thread.html?id=${conversation_id}`,
+      data: { push_body: preview || '📎 Sent an attachment', tag: `chat:${conversation_id}` },
     });
 
     return res.status(200).json({ ok: true });

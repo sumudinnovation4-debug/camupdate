@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script>(function(){try{var t=localStorage.getItem('cp-theme');if(t==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}})();</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Camplugie — Swift</title>
@@ -10,41 +9,6 @@
 
 /* ===== Design tokens (matches Camplugie's existing dark theme) ===== */
 :root {
-  --nav-h: 58px;
-  --bottom-h: 68px;
-  --radius: 18px;
-  --radius-sm: 12px;
-  --safe-top: env(safe-area-inset-top, 0px);
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
-
-  /* ===== Light theme (default) ===== */
-  --brand: #7C3AED;
-  --brand-dark: #5B21B6;
-  --brand-soft: rgba(124,58,237,0.10);
-  --accent: #B45309;
-  --accent-soft: rgba(180,83,9,0.10);
-  --money: #059669;
-  --danger: #E11D48;
-
-  --bg: #FAFAFC;
-  --bg-gradient: radial-gradient(circle at 20% -10%, rgba(124,58,237,0.07), transparent 40%), linear-gradient(180deg, #FFFFFF 0%, #FAFAFC 100%);
-  --surface: #FFFFFF;
-  --surface2: #F4F3F8;
-  --surface3: #ECEAF3;
-  --border: rgba(20,10,40,0.09);
-
-  --text: #16121F;
-  --text2: #4B455C;
-  --text3: #7A7390;
-
-  --shadow: 0 10px 26px rgba(20,10,40,0.08);
-  --shadow-lg: 0 24px 60px rgba(20,10,40,0.14);
-
-  --glass: rgba(255,255,255,0.85);
-  --glass-strong: rgba(255,255,255,0.92);
-}
-
-:root[data-theme="dark"] {
   --brand: #A78BFA;
   --brand-dark: #7C3AED;
   --brand-soft: rgba(167, 139, 250, 0.14);
@@ -64,11 +28,14 @@
   --text2: #C9C3DE;
   --text3: #8D86AA;
 
+  --nav-h: 58px;
+  --bottom-h: 68px;
+  --radius: 18px;
+  --radius-sm: 12px;
   --shadow: 0 14px 38px rgba(0,0,0,0.28);
   --shadow-lg: 0 24px 80px rgba(0,0,0,0.48);
-
-  --glass: rgba(9, 7, 20, 0.88);
-  --glass-strong: rgba(18, 16, 29, 0.92);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -105,7 +72,7 @@ img { max-width: 100%; display: block; }
   justify-content: space-between;
   gap: 12px;
   padding: calc(var(--safe-top) + 14px) 16px 12px;
-  background: var(--glass);
+  background: rgba(9, 7, 20, 0.88);
   backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--border);
 }
@@ -329,7 +296,7 @@ img { max-width: 100%; display: block; }
   width: 100%; max-width: 480px;
   height: calc(var(--bottom-h) + var(--safe-bottom));
   padding-bottom: var(--safe-bottom);
-  background: var(--glass-strong);
+  background: rgba(18, 16, 29, 0.92);
   backdrop-filter: blur(16px);
   border-top: 1px solid var(--border);
   display: flex; align-items: center; justify-content: space-around;
@@ -365,7 +332,7 @@ img { max-width: 100%; display: block; }
   display: flex; align-items: center; justify-content: space-between;
   gap: 12px;
   padding: calc(var(--safe-top) + 14px) 16px 12px;
-  background: var(--glass);
+  background: rgba(9, 7, 20, 0.88);
   backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--border);
 }
@@ -923,6 +890,13 @@ img { max-width: 100%; display: block; }
 .fee-breakdown { background: var(--surface2); border-radius: var(--radius-sm); padding: 12px 14px; margin-top: 6px; }
 .fee-breakdown-row { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--text2); padding: 3px 0; }
 .fee-breakdown-row.total { border-top: 1px solid var(--border); margin-top: 6px; padding-top: 8px; font-weight: 800; color: var(--text); font-size: 14px; }
+.geo-results { display: none; position: absolute; left: 0; right: 0; z-index: 800; margin-top: 4px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow-lg, 0 12px 32px rgba(0,0,0,.5)); max-height: 260px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.geo-item { display: block; width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--border); padding: 11px 14px; color: var(--text); font: inherit; cursor: pointer; }
+.geo-item:last-child { border-bottom: 0; }
+.geo-item:active { background: var(--surface3); }
+.geo-item b { display: block; font-size: 13.5px; }
+.geo-item span { display: block; font-size: 11.5px; color: var(--text3); margin-top: 2px; }
+.geo-note { padding: 12px 14px; font-size: 12.5px; color: var(--text3); }
 .fee-badge { display: inline-flex; align-items: center; gap: 4px; background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 3px 10px; font-size: 11px; font-weight: 700; margin-left: 6px; }
 
 /* ===== Admin ===== */
@@ -1216,6 +1190,7 @@ img { max-width: 100%; display: block; }
 </style>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="/swift-geo.js"></script>
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#7C3AED">
 <meta name="color-scheme" content="dark light">
@@ -1225,6 +1200,7 @@ img { max-width: 100%; display: block; }
 <meta name="apple-mobile-web-app-title" content="Camplugie">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <link rel="icon" href="/icons/icon-192.png" type="image/png">
+<script src="/pwa.js"></script>
 </head>
 <body>
 
@@ -1889,32 +1865,12 @@ function prettyDistance(m) {
   return `${(m / 1000).toFixed(1)} km`;
 }
 
-const BASE_FEE = 1000;         // flat base, always applies
-const PER_KM_FEE = 150;        // added per km beyond the first free km
-const OFF_CAMPUS_SURCHARGE = 1000; // added if pickup or drop-off is outside the campus radius
-const CAMPUS_RADIUS_METERS = 2000; // "on campus" = within this radius of the university's pinned center
-
-// Computes the delivery fee from the two pins. Falls back to just the base
-// fee if we don't have both points yet, or if the university has no center
-// coordinates set (see the campus radius note below).
-function computeFee(pickup, dropoff, campusCenter) {
-  let fee = BASE_FEE;
-  const breakdown = [{ label: 'Base fee', amount: BASE_FEE }];
-
-  const distM = haversineMeters(pickup, dropoff);
-  if (distM != null) {
-    const extraKm = Math.max(0, distM / 1000 - 1);
-    const distanceFee = Math.ceil(extraKm) * PER_KM_FEE;
-    if (distanceFee > 0) { fee += distanceFee; breakdown.push({ label: `Distance (${prettyDistance(distM)})`, amount: distanceFee }); }
-  }
-
-  if (campusCenter) {
-    const pickupOutside = pickup && haversineMeters(pickup, campusCenter) > CAMPUS_RADIUS_METERS;
-    const dropoffOutside = dropoff && haversineMeters(dropoff, campusCenter) > CAMPUS_RADIUS_METERS;
-    if (pickupOutside || dropoffOutside) { fee += OFF_CAMPUS_SURCHARGE; breakdown.push({ label: 'Off-campus surcharge', amount: OFF_CAMPUS_SURCHARGE }); }
-  }
-
-  return { fee, breakdown, distM };
+// Fee rules live in swift-geo.js (CPGeo.CFG): ₦1,000 flat up to 5 km by road,
+// then ₦150 per extra km. The same price applies on campus and around it.
+// `km` = road distance (null until both pins are set).
+function computeFee(km) {
+  const { fee, breakdown } = CPGeo.fee(km);
+  return { fee, breakdown, km };
 }
 
 function renderRequestForm() {
@@ -1925,9 +1881,9 @@ function renderRequestForm() {
       <form id="requestOrderForm">
         <div class="form-group">
           <label class="form-label">Pickup location</label>
-          <input class="form-input" id="reqPickup" placeholder="e.g. Mama Put, behind Fajuyi Hall" value="${linkedListing?.pickup_label || ''}" required>
+          <input class="form-input" id="reqPickup" placeholder="Search address or place, e.g. Mama Put, Rayfield" value="${linkedListing?.pickup_label || ''}" required>
           <div id="pickupMap" class="loc-picker-map"></div>
-          <div class="loc-picker-hint">Tap the map to drop a pin, or use your current location.</div>
+          <div class="loc-picker-hint">Pick a suggestion above, tap the map to drop a pin, or use your current location.</div>
           <div style="display:flex;gap:8px;margin-top:6px">
             <button type="button" class="locate-btn" id="pickupLocateBtn" style="flex:1">📍 Use my current location</button>
           </div>
@@ -1937,9 +1893,9 @@ function renderRequestForm() {
 
         <div class="form-group">
           <label class="form-label">Drop-off location</label>
-          <input class="form-input" id="reqDropoff" placeholder="e.g. Angola Hall, Room 14" required>
+          <input class="form-input" id="reqDropoff" placeholder="Search your address or hostel, e.g. Angola Hall" required>
           <div id="dropoffMap" class="loc-picker-map"></div>
-          <div class="loc-picker-hint">Tap the map to drop a pin, or use your current location.</div>
+          <div class="loc-picker-hint">Pick a suggestion above, tap the map to drop a pin, or use your current location.</div>
           <div style="display:flex;gap:8px;margin-top:6px">
             <button type="button" class="locate-btn" id="dropoffLocateBtn" style="flex:1">📍 Use my current location</button>
           </div>
@@ -1955,10 +1911,10 @@ function renderRequestForm() {
         <div class="form-group">
           <label class="form-label">Delivery fee <span id="feeAutoBadge" class="fee-badge" style="display:none">Auto-calculated</span></label>
           <div class="fee-breakdown" id="feeBreakdown">
-            <div class="fee-breakdown-row"><span>Base fee</span><span>${window.CP.fmtNaira(BASE_FEE)}</span></div>
-            <div class="fee-breakdown-row total"><span>Total</span><span id="feeTotalDisplay">${window.CP.fmtNaira(BASE_FEE)}</span></div>
+            <div class="fee-breakdown-row"><span>Delivery (campus &amp; nearby)</span><span>${window.CP.fmtNaira(CPGeo.CFG.FLAT_FEE)}</span></div>
+            <div class="fee-breakdown-row total"><span>Total</span><span id="feeTotalDisplay">${window.CP.fmtNaira(CPGeo.CFG.FLAT_FEE)}</span></div>
           </div>
-          <div class="loc-picker-hint">Drop both pins above for an accurate distance-based price. Starts at ₦1,000 and increases with distance, plus a surcharge if either point is off campus.</div>
+          <div class="loc-picker-hint">₦1,000 flat anywhere on or around campus (up to ${CPGeo.CFG.FLAT_KM} km). Only longer trips cost extra. Search an address or drop both pins to confirm.</div>
         </div>
 
         <button type="submit" class="form-submit">Post request</button>
@@ -1994,13 +1950,31 @@ function initPicker(mapId, statusId, onSet) {
   }};
 }
 
-function updateFeeDisplay() {
-  const { fee, breakdown, distM } = computeFee(pickupPin, dropoffPin, campusCenter);
+let feeSeq = 0, lastKm = null;
+function paintFee(km, source) {
+  const { fee, breakdown } = computeFee(km);
   document.getElementById('feeAutoBadge').style.display = (pickupPin && dropoffPin) ? 'inline-flex' : 'none';
   document.getElementById('feeBreakdown').innerHTML = breakdown.map(b =>
     `<div class="fee-breakdown-row"><span>${CP.esc(b.label)}</span><span>${window.CP.fmtNaira(b.amount)}</span></div>`
-  ).join('') + `<div class="fee-breakdown-row total"><span>Total</span><span>${window.CP.fmtNaira(fee)}</span></div>`;
+  ).join('') + `<div class="fee-breakdown-row total"><span>Total</span><span>${window.CP.fmtNaira(fee)}</span></div>` +
+    (km != null && source ? `<div class="fee-breakdown-row" style="font-size:11px;color:var(--text3)"><span>${source === 'road' ? 'Road distance' : 'Approx. distance'}: ${CPGeo.prettyKm(km)}</span><span></span></div>` : '');
   return fee;
+}
+// Shows an instant estimate, then upgrades it to the real road distance. Returns the estimate-based fee synchronously.
+function updateFeeDisplay() {
+  const mine = ++feeSeq;
+  const est = (pickupPin && dropoffPin) ? CPGeo.estimateKm(pickupPin, dropoffPin) : null;
+  lastKm = est;
+  const fee = paintFee(est, est != null ? 'estimate' : null);
+  if (est != null) CPGeo.roadKm(pickupPin, dropoffPin).then(r => { if (mine === feeSeq && r.km != null) { lastKm = r.km; paintFee(r.km, r.source); } });
+  return fee;
+}
+// Used on submit so the saved fee always uses the real road distance.
+async function finalFee() {
+  if (!(pickupPin && dropoffPin)) return paintFee(null, null);
+  const r = await CPGeo.roadKm(pickupPin, dropoffPin);
+  feeSeq++; lastKm = r.km;
+  return paintFee(r.km, r.source);
 }
 
 async function loadCampusCenter(universityId) {
@@ -2042,6 +2016,16 @@ function bindRequestForm(userId, universityId) {
     );
   });
 
+  const geoBias = () => campusCenter || null;
+  CPGeo.attach(document.getElementById('reqPickup'), { getBias: geoBias, onPick: (pt) => {
+    pickupPin = { lat: pt.lat, lng: pt.lng }; pickupCtl.setPin(pickupPin);
+    document.getElementById('reqPickupLat').value = pt.lat; document.getElementById('reqPickupLng').value = pt.lng; updateFeeDisplay();
+  }});
+  CPGeo.attach(document.getElementById('reqDropoff'), { getBias: geoBias, onPick: (pt) => {
+    dropoffPin = { lat: pt.lat, lng: pt.lng }; dropoffCtl.setPin(dropoffPin);
+    document.getElementById('reqDropoffLat').value = pt.lat; document.getElementById('reqDropoffLng').value = pt.lng; updateFeeDisplay();
+  }});
+
   updateFeeDisplay();
 
   document.getElementById('requestOrderForm').addEventListener('submit', async (e) => {
@@ -2049,7 +2033,8 @@ function bindRequestForm(userId, universityId) {
     const pickup_place = document.getElementById('reqPickup').value.trim();
     const dropoff_place = document.getElementById('reqDropoff').value.trim();
     const note = document.getElementById('reqNote').value.trim();
-    const fee = updateFeeDisplay();
+    const btn0 = e.target.querySelector('.form-submit'); btn0.disabled = true; btn0.textContent = 'Calculating fee…';
+    const fee = await finalFee();
     const pickup_lat = parseFloat(document.getElementById('reqPickupLat').value) || null;
     const pickup_lng = parseFloat(document.getElementById('reqPickupLng').value) || null;
     const dropoff_lat = parseFloat(document.getElementById('reqDropoffLat').value) || null;
@@ -2527,20 +2512,5 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
-<button id="cpThemeToggle" aria-label="Toggle dark mode" style="position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 84px);right:14px;z-index:999;width:36px;height:36px;border-radius:50%;border:1px solid var(--border);background:var(--surface2);color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:var(--shadow);font-size:16px;line-height:1;">🌙</button>
-<script>(function(){
-  var btn = document.getElementById('cpThemeToggle');
-  if (!btn) return;
-  function isDark(){ return document.documentElement.getAttribute('data-theme') === 'dark'; }
-  function sync(){ btn.textContent = isDark() ? '☀️' : '🌙'; }
-  sync();
-  btn.addEventListener('click', function(){
-    var next = isDark() ? '' : 'dark';
-    if (next) { document.documentElement.setAttribute('data-theme','dark'); }
-    else { document.documentElement.removeAttribute('data-theme'); }
-    try { localStorage.setItem('cp-theme', next || 'light'); } catch(e){}
-    sync();
-  });
-})();</script>
 </body>
 </html>

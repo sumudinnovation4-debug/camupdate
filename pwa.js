@@ -131,18 +131,6 @@
     '#cp-install .t svg{width:14px;height:14px;vertical-align:-2px;margin:0 1px}',
     '#cp-install .go{background:linear-gradient(135deg,#7C3AED,#4F8DF7);color:#fff;border:0;border-radius:12px;padding:10px 16px;font:700 13.5px system-ui,sans-serif;cursor:pointer;flex:none}',
     '#cp-install .x{background:none;border:0;color:#8D86AA;font-size:18px;cursor:pointer;padding:4px 6px;flex:none}',
-    /* notification permission banner — same shell as #cp-install, own id so both can exist */
-    '#cp-notif{position:fixed;left:12px;right:12px;bottom:calc(88px + env(safe-area-inset-bottom,0px));z-index:2147483200;display:flex;align-items:center;gap:12px;',
-    'padding:12px 12px 12px 14px;border-radius:20px;color:#F8F6FF;font-family:system-ui,-apple-system,\"Segoe UI\",sans-serif;',
-    'background:linear-gradient(135deg,rgba(38,28,86,.96),rgba(18,16,29,.96));border:1px solid rgba(167,139,250,.32);',
-    '-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:0 18px 44px rgba(0,0,0,.5),0 0 0 1px rgba(124,58,237,.12);',
-    'transform:translateY(30px);opacity:0;transition:all .38s cubic-bezier(.2,.9,.3,1.1);max-width:460px;margin:0 auto}',
-    '#cp-notif.on{transform:none;opacity:1}',
-    '#cp-notif .bell{width:46px;height:46px;border-radius:12px;flex:none;background:rgba(251,191,36,.16);display:flex;align-items:center;justify-content:center;font-size:21px}',
-    '#cp-notif .t{flex:1;min-width:0}#cp-notif .t b{display:block;font-size:14.5px;margin-bottom:2px}',
-    '#cp-notif .t span{display:block;font-size:12.5px;color:#C9C3DE;line-height:1.35}',
-    '#cp-notif .go{background:linear-gradient(135deg,#7C3AED,#4F8DF7);color:#fff;border:0;border-radius:12px;padding:10px 16px;font:700 13.5px system-ui,sans-serif;cursor:pointer;flex:none;white-space:nowrap}',
-    '#cp-notif .x{background:none;border:0;color:#8D86AA;font-size:18px;cursor:pointer;padding:4px 6px;flex:none}',
     '@keyframes cp-spin{to{transform:rotate(360deg)}}@keyframes cp-shimmer{to{background-position:-200% 0}}',
     '@keyframes cp-bounce{0%,80%,100%{transform:scale(.6);opacity:.5}40%{transform:scale(1);opacity:1}}'
   ].join('');
@@ -319,7 +307,7 @@
    * ===================================================================== */
   // Public key only — safe to ship client-side. Its private half lives in
   // the VAPID_PRIVATE_KEY env var on the server and never appears in code.
-  var VAPID_PUBLIC_KEY = 'BG64U0SAkXq6cUtInaIg45fpIy7O0Yx_AnaKgBF1VGabHCliCb37r_gWJqh47KTSPrPtg_MY6W2_CfEjgaxsQ6s';
+  var VAPID_PUBLIC_KEY = 'BKzdCP0WJwslEi9pHpmV2ZYEKP0p4EXIoCA4IabQSl97ronS7f3QJ0fdBs-mn_aN_MbYf9CFkmXQ_co2lFGGg0E';
 
   function urlBase64ToUint8Array(base64String) {
     var padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -334,27 +322,43 @@
   }
   function pushPermission() { return pushSupported() ? Notification.permission : 'unsupported'; }
 
-  // Requests permission, subscribes this device, and upserts the row into
-  // push_subscriptions (RLS lets a user write only their own rows) so the
-  // server can fan pushes out to it. Resolves false (never throws) if the
-  // user declines or the browser doesn't support push.
-  function subscribePush(userId) {
+  // Subscribes THIS device and saves it to push_subscriptions so the server can
+  // reach it. `ask` = true shows the browser permission prompt (must be called
+  // from a tap); false only (re)registers when permission is already granted.
+  // Resolves false (never throws) if declined / unsupported / save fails.
+  function saveSubscription(sub, userId) {
+    var j = sub.toJSON();
+    if (!j.keys) return Promise.resolve(false);
+    return window.sb.from('push_subscriptions').upsert({
+      user_id: userId, endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth,
+    }, { onConflict: 'endpoint' }).then(function (r) {
+      if (r && r.error) { console.warn('[pwa] saving push subscription failed', r.error); return false; }
+      return true;
+    });
+  }
+
+  function subscribePush(userId, ask) {
     if (!pushSupported() || !userId || !window.sb) return Promise.resolve(false);
-    return Notification.requestPermission().then(function (perm) {
+    if (ask === undefined) ask = true;
+    var permP = Notification.permission === 'default' && ask
+      ? Notification.requestPermission()
+      : Promise.resolve(Notification.permission);
+    return permP.then(function (perm) {
       if (perm !== 'granted') return false;
       return navigator.serviceWorker.ready.then(function (reg) {
+        var key = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
+        function fresh() { return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key }); }
         return reg.pushManager.getSubscription().then(function (existing) {
-          return existing || reg.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-          });
+          if (!existing) return fresh();
+          // A subscription made with a different VAPID key can never receive our pushes — replace it.
+          var cur = existing.options && existing.options.applicationServerKey;
+          if (cur && cur.byteLength === key.byteLength && new Uint8Array(cur).every(function (v, i) { return v === key[i]; })) return existing;
+          if (!cur) return existing;
+          return existing.unsubscribe().then(fresh);
+        }).catch(function () {
+          return reg.pushManager.getSubscription().then(function (x) { return x ? x.unsubscribe() : null; }).then(fresh);
         });
-      }).then(function (sub) {
-        var j = sub.toJSON();
-        return window.sb.from('push_subscriptions').upsert({
-          user_id: userId, endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth,
-        }, { onConflict: 'endpoint' });
-      }).then(function () { return true; });
+      }).then(function (sub) { return saveSubscription(sub, userId); });
     }).catch(function (e) { console.warn('[pwa] push subscribe failed', e); return false; });
   }
 
@@ -371,53 +375,6 @@
         return window.sb ? window.sb.from('push_subscriptions').delete().eq('endpoint', endpoint) : null;
       }).then(function () { return true; });
     }).catch(function (e) { console.warn('[pwa] push unsubscribe failed', e); return false; });
-  }
-
-  // Proactive "turn on notifications" banner — same idea as the install
-  // banner above, but for push permission. Without this, a user only ever
-  // gets asked if they dig into Settings themselves, so in practice almost
-  // nobody ends up subscribed and calls/messages/likes/orders never reach
-  // their device. Shown once per cooldown window, never if already
-  // granted/denied/unsupported, never if the user turned it off deliberately.
-  var notifEl, notifShown = false;
-  function notifSnoozed() {
-    var until = +store('cp_notif_snooze') || 0;
-    return Date.now() < until;
-  }
-  function removeNotifBanner() {
-    if (!notifEl) return;
-    notifEl.classList.remove('on');
-    var b = notifEl;
-    setTimeout(function () { b.parentNode && b.parentNode.removeChild(b); }, 400);
-    notifEl = null;
-  }
-  function dismissNotifBanner(forGood) {
-    store('cp_notif_snooze', String(Date.now() + (forGood ? 60 : 5) * 864e5));
-    removeNotifBanner();
-  }
-  function showNotifBanner(userId) {
-    if (notifEl || notifShown) return;
-    if (!pushSupported() || pushPermission() !== 'default') return;
-    if (has(NO_PROMPT) || notifSnoozed() || inAppBrowser()) return;
-    notifShown = true;
-    addStyle('cp-ui-css', UI_CSS);
-    notifEl = doc.createElement('div'); notifEl.id = 'cp-notif'; notifEl.setAttribute('role', 'dialog');
-    notifEl.innerHTML = '<span class="bell">🔔</span><div class="t"><b>Turn on notifications</b>' +
-      '<span>Get calls, messages, likes and order updates the moment they happen.</span></div>' +
-      '<button class="go">Enable</button><button class="x" aria-label="Close">&#10005;</button>';
-    (doc.body || root).appendChild(notifEl);
-    notifEl.querySelector('.go').onclick = function () {
-      removeNotifBanner();
-      subscribePush(userId).then(function (ok) {
-        if (ok && window.sb) {
-          window.sb.from('profiles').update({ push_enabled: true }).eq('id', userId).then(function () {}, function () {});
-        } else if (!ok) {
-          dismissNotifBanner(true); // they were asked and declined at the OS level — don't ask again soon
-        }
-      });
-    };
-    notifEl.querySelector('.x').onclick = function () { dismissNotifBanner(false); };
-    requestAnimationFrame(function () { requestAnimationFrame(function () { notifEl && notifEl.classList.add('on'); }); });
   }
 
   /* =====================================================================
@@ -460,20 +417,69 @@
 
   // Fires on every protected page (each one dispatches 'cp-ready' after
   // loading the session + profile). Keeps this device's subscription alive
-  // without ever showing a permission prompt unless one is actually needed.
+  // silently when permission was already granted, and otherwise offers a
+  // friendly one-tap "Turn on notifications" card (browsers only allow the
+  // permission prompt from a tap, so it can't be fired automatically).
+  var NO_PUSH_PROMPT = ['offline', 'call', 'group-call', 'turn-test', 'download', 'preview',
+                        'auth', 'onboarding', 'verify-email', 'banned', 'admin', 'settings', 'chat-thread', 'group-thread'];
+  var pushBannerEl;
+  function removePushBanner() { if (pushBannerEl) { var b = pushBannerEl; b.classList.remove('on'); setTimeout(function () { b.parentNode && b.parentNode.removeChild(b); }, 400); pushBannerEl = null; } }
+  function showPushBanner(user) {
+    if (pushBannerEl || !pushSupported() || Notification.permission !== 'default') return;
+    pushBannerEl = doc.createElement('div'); pushBannerEl.id = 'cp-install'; pushBannerEl.setAttribute('role', 'dialog');
+    pushBannerEl.innerHTML = '<img src="/icons/icon-96.png" alt="" width="46" height="46"><div class="t"><b>Turn on notifications</b>' +
+      '<span>Get new messages, orders and delivery updates the moment they happen.</span></div>' +
+      '<button class="go">Turn on</button><button class="x" aria-label="Not now">&#10005;</button>';
+    (doc.body || root).appendChild(pushBannerEl);
+    pushBannerEl.querySelector('.go').onclick = function () {
+      removePushBanner();
+      subscribePush(user.id, true).then(function (ok) {
+        if (ok) {
+          try { window.sb.from('profiles').update({ push_enabled: true }).eq('id', user.id).then(function () {}, function () {}); } catch (e) {}
+          toast('Notifications are on 🔔');
+        } else if (Notification.permission === 'denied') {
+          toast('Notifications are blocked — enable them for Camplugie in your phone settings.');
+        } else {
+          toast('Couldn’t turn notifications on for this device. Check your connection and try again from Settings.');
+        }
+      });
+    };
+    pushBannerEl.querySelector('.x').onclick = function () {
+      var n = (+store('cp_push_dismissed') || 0) + 1; store('cp_push_dismissed', String(n));
+      store('cp_push_snooze', String(Date.now() + (n >= 3 ? 30 : 3) * 864e5));
+      removePushBanner();
+    };
+    requestAnimationFrame(function () { requestAnimationFrame(function () { pushBannerEl && pushBannerEl.classList.add('on'); }); });
+  }
+
   doc.addEventListener('cp-ready', function (e) {
     var profile = e.detail && e.detail.profile, user = e.detail && e.detail.user;
-    if (!user) return;
-    if (profile && profile.push_enabled && pushPermission() === 'granted') {
-      subscribePush(user.id);
+    if (!user || !pushSupported()) return;
+    window.CP_USER = window.CP_USER || user;
+    var enabled = !profile || profile.push_enabled !== false;      // null/undefined = on by default
+    if (!enabled) return;
+
+    if (Notification.permission === 'granted') {
+      // Re-register at most once per session per device (cheap, self-healing).
+      if (!sess('cp_push_synced')) { sess('cp_push_synced', '1'); subscribePush(user.id, false); }
       return;
     }
-    // Never explicitly opted out (push_enabled is false only once a user
-    // flips the Settings toggle off) and never yet asked at the OS level —
-    // offer it, a few seconds in so it doesn't compete with the splash/install banner.
-    if (profile && profile.push_enabled === false) return;
-    setTimeout(function () { showNotifBanner(user.id); }, 4000);
+    if (Notification.permission !== 'default') return;               // denied: respect it
+    if (has(NO_PUSH_PROMPT) || inAppBrowser()) return;
+    if (isIOS() && !isStandalone()) return;                           // iPhone only allows push once installed to the Home Screen
+    if (Date.now() < (+store('cp_push_snooze') || 0)) return;
+    setTimeout(function () { showPushBanner(user); }, isStandalone() ? 4000 : 12000);
   });
+
+  // Messages from the service worker.
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', function (e) {
+      var d = e.data || {};
+      if (d.type === 'cp-navigate' && d.url) location.href = d.url;
+      if (d.type === 'cp-push-resubscribe' && window.CP_USER) subscribePush(window.CP_USER.id, false);
+      if (d.type === 'cp-push') { try { doc.dispatchEvent(new CustomEvent('cp-push', { detail: d.payload })); } catch (_) {} }
+    });
+  }
 
   window.CamplugiePWA = {
     apkUrl: APK_URL,

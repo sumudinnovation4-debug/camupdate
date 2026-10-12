@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script>(function(){try{var t=localStorage.getItem('cp-theme');if(t==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}})();</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Camplugie — Group</title>
@@ -10,41 +9,6 @@
 
 /* ===== Design tokens (matches Camplugie's existing dark theme) ===== */
 :root {
-  --nav-h: 58px;
-  --bottom-h: 68px;
-  --radius: 18px;
-  --radius-sm: 12px;
-  --safe-top: env(safe-area-inset-top, 0px);
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
-
-  /* ===== Light theme (default) ===== */
-  --brand: #7C3AED;
-  --brand-dark: #5B21B6;
-  --brand-soft: rgba(124,58,237,0.10);
-  --accent: #B45309;
-  --accent-soft: rgba(180,83,9,0.10);
-  --money: #059669;
-  --danger: #E11D48;
-
-  --bg: #FAFAFC;
-  --bg-gradient: radial-gradient(circle at 20% -10%, rgba(124,58,237,0.07), transparent 40%), linear-gradient(180deg, #FFFFFF 0%, #FAFAFC 100%);
-  --surface: #FFFFFF;
-  --surface2: #F4F3F8;
-  --surface3: #ECEAF3;
-  --border: rgba(20,10,40,0.09);
-
-  --text: #16121F;
-  --text2: #4B455C;
-  --text3: #7A7390;
-
-  --shadow: 0 10px 26px rgba(20,10,40,0.08);
-  --shadow-lg: 0 24px 60px rgba(20,10,40,0.14);
-
-  --glass: rgba(255,255,255,0.85);
-  --glass-strong: rgba(255,255,255,0.92);
-}
-
-:root[data-theme="dark"] {
   --brand: #A78BFA;
   --brand-dark: #7C3AED;
   --brand-soft: rgba(167, 139, 250, 0.14);
@@ -64,11 +28,14 @@
   --text2: #C9C3DE;
   --text3: #8D86AA;
 
+  --nav-h: 58px;
+  --bottom-h: 68px;
+  --radius: 18px;
+  --radius-sm: 12px;
   --shadow: 0 14px 38px rgba(0,0,0,0.28);
   --shadow-lg: 0 24px 80px rgba(0,0,0,0.48);
-
-  --glass: rgba(9, 7, 20, 0.88);
-  --glass-strong: rgba(18, 16, 29, 0.92);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -105,7 +72,7 @@ img { max-width: 100%; display: block; }
   justify-content: space-between;
   gap: 12px;
   padding: calc(var(--safe-top) + 14px) 16px 12px;
-  background: var(--glass);
+  background: rgba(9, 7, 20, 0.88);
   backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--border);
 }
@@ -329,7 +296,7 @@ img { max-width: 100%; display: block; }
   width: 100%; max-width: 480px;
   height: calc(var(--bottom-h) + var(--safe-bottom));
   padding-bottom: var(--safe-bottom);
-  background: var(--glass-strong);
+  background: rgba(18, 16, 29, 0.92);
   backdrop-filter: blur(16px);
   border-top: 1px solid var(--border);
   display: flex; align-items: center; justify-content: space-around;
@@ -365,7 +332,7 @@ img { max-width: 100%; display: block; }
   display: flex; align-items: center; justify-content: space-between;
   gap: 12px;
   padding: calc(var(--safe-top) + 14px) 16px 12px;
-  background: var(--glass);
+  background: rgba(9, 7, 20, 0.88);
   backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--border);
 }
@@ -950,7 +917,9 @@ img { max-width: 100%; display: block; }
 /* ===== Chat thread ===== */
 .thread-header-info { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
 .thread-header-info .avatar { width: 34px; height: 34px; font-size: 12px; }
-.thread-header-info b { font-size: 14.5px; display: block; }
+.thread-header-info b { font-size: 14.5px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.thread-header-info > div:last-child { min-width: 0; flex: 1; }
+.thread-substatus { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .thread-header-info span { font-size: 11px; color: var(--text3); }
 .thread-listing-chip {
   display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 10px 16px 0;
@@ -1403,10 +1372,14 @@ mark.hit { background: var(--accent); color: #1A1200; border-radius: 3px; paddin
 
 /* ---- Jump-to-unread pill ---- */
 .unread-jump {
-  position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+  /* sticky (not absolute): the pill lives INSIDE the scrolling area, so an
+     absolute one scrolled away with the messages and sat on top of them.
+     Zero bottom space (negative margin) so it floats over content, never pushes it. */
+  position: sticky; top: 10px; z-index: 5; display: none; cursor: pointer;
+  width: max-content; max-width: calc(100% - 24px); margin: 10px auto -38px;
   background: var(--brand); color: #fff; border: none; border-radius: 999px;
   padding: 7px 15px; font: inherit; font-size: 12px; font-weight: 800;
-  box-shadow: var(--shadow); z-index: 5; display: none; cursor: pointer;
+  box-shadow: var(--shadow);
 }
 .unread-jump.show { display: block; }
 
@@ -1561,6 +1534,7 @@ mark.hit { background: var(--accent); color: #1A1200; border-radius: 3px; paddin
 <meta name="apple-mobile-web-app-title" content="Camplugie">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <link rel="icon" href="/icons/icon-192.png" type="image/png">
+<script src="/pwa.js"></script>
 </head>
 <body class="chat-page">
 
@@ -2180,7 +2154,7 @@ async function loadMessages() {
 
   if (unreadAnchorId) {
     const sep = document.getElementById('unreadSep');
-    if (sep) { sep.scrollIntoView({ block: 'center' }); $('unreadJump').classList.add('show'); }
+    if (sep) { sep.scrollIntoView({ block: 'center' }); updateUnreadPill(); }
     else scroller.toBottom(false);
   } else {
     scroller.toBottom(false);
@@ -2307,13 +2281,6 @@ async function sendMessage(extra = {}) {
     return;
   }
 
-  // Device push to the other members (skips muted / blocked; @mentions still get through).
-  window.sb.auth.getSession().then(({ data: { session: ps } }) => fetch('/api/notify-group-message', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ps?.access_token || ''}` },
-    body: JSON.stringify({ group_id: groupId, message_id: sent.id }),
-  })).catch(err => console.error('notify-group-message failed:', err));
-
   if (i !== -1) { messages.splice(i, 1); byId.delete(tempId); }
   if (!byId.has(sent.id)) { byId.set(sent.id, sent); messages.push(decorate(sent)); }
   render(); scroller.toBottom(true);
@@ -2323,6 +2290,16 @@ async function sendMessage(extra = {}) {
   window.sb.from('groups')
     .update({ last_message: preview, last_message_at: new Date().toISOString() })
     .eq('id', groupId).then(() => {}, () => {});
+
+  // Real device push to the other members (fire-and-forget; never blocks or errors the sender).
+  window.sb.auth.getSession().then(({ data: { session } }) => {
+    if (!session?.access_token) return;
+    return fetch('/api/notify-group-message', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify({ group_id: groupId, message_id: sent.id }),
+    });
+  }).catch(err => console.warn('notify-group-message failed:', err));
 }
 
 async function postSystem(text) {
@@ -2830,6 +2807,15 @@ $('searchPrevBtn').addEventListener('click', () => {
 });
 
 /* ---- jump-to-unread pill ---- */
+// The pill only makes sense while the "UNREAD MESSAGES" divider is scrolled
+// off the TOP of the screen (↑). Visible or below → hide it.
+function updateUnreadPill() {
+  const pill = $('unreadJump'), sep = document.getElementById('unreadSep'), sc = $('chatScroll');
+  if (!pill) return;
+  if (!sep || !sc) { pill.classList.remove('show'); return; }
+  const aboveView = sep.getBoundingClientRect().bottom < sc.getBoundingClientRect().top + 8;
+  pill.classList.toggle('show', aboveView);
+}
 $('unreadJump').addEventListener('click', () => {
   const sep = document.getElementById('unreadSep');
   if (sep) sep.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -3464,7 +3450,8 @@ document.addEventListener('cp-ready', (e) => {
 
 $('chatScroll').addEventListener('scroll', () => {
   if (scroller?.nearBottom()) { $('unreadJump').classList.remove('show'); markRead(); }
-});
+  else updateUnreadPill();
+}, { passive: true });
 
 document.addEventListener('visibilitychange', () => { if (!document.hidden && bootDone) markRead(); });
 window.addEventListener('beforeunload', () => { presence?.stopTyping(myName); saveDraft(); });
@@ -3491,20 +3478,5 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
-<button id="cpThemeToggle" aria-label="Toggle dark mode" style="position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 84px);right:14px;z-index:999;width:36px;height:36px;border-radius:50%;border:1px solid var(--border);background:var(--surface2);color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:var(--shadow);font-size:16px;line-height:1;">🌙</button>
-<script>(function(){
-  var btn = document.getElementById('cpThemeToggle');
-  if (!btn) return;
-  function isDark(){ return document.documentElement.getAttribute('data-theme') === 'dark'; }
-  function sync(){ btn.textContent = isDark() ? '☀️' : '🌙'; }
-  sync();
-  btn.addEventListener('click', function(){
-    var next = isDark() ? '' : 'dark';
-    if (next) { document.documentElement.setAttribute('data-theme','dark'); }
-    else { document.documentElement.removeAttribute('data-theme'); }
-    try { localStorage.setItem('cp-theme', next || 'light'); } catch(e){}
-    sync();
-  });
-})();</script>
 </body>
 </html>

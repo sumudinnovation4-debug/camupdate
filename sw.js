@@ -12,7 +12,7 @@ const SHELL = [
   '/profile.html', '/create.html', '/chat-thread.html', '/group-thread.html',
   '/groups.html', '/call.html', '/wallet.html', '/orders.html', '/cart.html',
   '/listing.html', '/swift.html', '/settings.html', '/offline.html',
-  '/style.css', '/config.js', '/payments.js', '/chat-core.js',
+  '/style.css', '/config.js', '/payments.js', '/chat-core.js', '/swift-geo.js',
   '/manifest.webmanifest', '/pwa.js', '/download.html', '/privacy-policy.html',
   '/favicon.ico',
   '/icons/icon-96.png', '/icons/icon-192.png', '/icons/icon-512.png', '/icons/apple-touch-icon.png',
@@ -85,59 +85,72 @@ self.addEventListener('message', (e) => {
   if (e.data === 'SKIP_WAITING') self.skipWaiting();
 });
 
-/* Web Push — real device notifications, WhatsApp-style. The server (api/send-push.js,
-   notify-message.js, notify-call.js, notify-group-message.js) sends the payload; this
-   shows it even when Camplugie is closed. */
+/* Web Push — real device notifications that come from the installed app
+   (Camplugie icon + name), not from the browser. The server (api/send-push.js
+   and api/notify-group-message.js) sends the payload; this worker shows it. */
+
+// Opens/focuses the app at `target`. Prefers a window that is already open
+// (so tapping a notification never spawns a second copy of the app).
+async function openApp(target) {
+  const abs = new URL(target || '/notifications.html', self.location.origin).href;
+  const list = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+  for (const c of list) {
+    if (new URL(c.url).origin !== self.location.origin) continue;
+    try { await c.focus(); } catch (_) {}
+    if ('navigate' in c) { try { return await c.navigate(abs); } catch (_) {} }
+    c.postMessage({ type: 'cp-navigate', url: abs });
+    return c;
+  }
+  return self.clients.openWindow(abs);
+}
+
 self.addEventListener('push', (event) => {
-  let p = {};
-  try { p = event.data ? event.data.json() : {}; } catch (_) { p = { title: 'Camplugie', body: event.data ? event.data.text() : '' }; }
-  const url = p.url || '/notifications.html';
-  const isCall = p.type === 'call';
+  let payload = {};
+  try { payload = event.data ? event.data.json() : {}; }
+  catch (_) { payload = { title: 'Camplugie', body: event.data ? event.data.text() : '' }; }
+
+  const url = payload.url || '/notifications.html';
+  const title = payload.title || 'Camplugie';
 
   event.waitUntil((async () => {
-    // If the person is looking at this exact screen right now (e.g. the open chat), the
-    // page already shows it live — don't also buzz a banner. Calls always ring.
-    if (!isCall) {
-      const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-      const here = wins.some(c => c.visibilityState === 'visible' && c.focused && new URL(c.url).pathname + new URL(c.url).search === url);
-      if (here) return;
-    }
-    await self.registration.showNotification(p.title || 'Camplugie', {
-      body: p.body || '',
-      icon: '/icons/icon-192.png',
-      badge: '/icons/icon-96.png',
-      tag: p.tag || 'camplugie',
-      renotify: true,                       // same tag still buzzes again for a new message
-      requireInteraction: !!p.requireInteraction,   // calls stay on screen until answered/dismissed
-      vibrate: isCall ? [400, 200, 400, 200, 400, 200, 400] : [180, 90, 180],
-      data: { url, type: p.type, ...(p.data || {}) },
-      timestamp: Date.now(),
+    // If the person is already looking at this exact chat/order, don't buzz
+    // them — the live UI already shows it (same behaviour as WhatsApp).
+    const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    const here = new URL(url, self.location.origin);
+    const viewing = wins.some((c) => {
+      if (c.visibilityState !== 'visible') return false;
+      const u = new URL(c.url);
+      if (u.pathname !== here.pathname) return false;
+      const id = here.searchParams.get('id');                // same chat / group / order, ignoring other query params
+      return id ? u.searchParams.get('id') === id : u.search === here.search;
+    });
+    wins.forEach((c) => c.postMessage({ type: 'cp-push', payload }));
+    if (viewing) return;
+
+    await self.registration.showNotification(title, {
+      body: payload.body || '',
+      icon: payload.icon || '/icons/icon-192.png',
+      badge: '/icons/monochrome-512.png',          // small white status-bar glyph on Android
+      tag: payload.tag || 'camplugie',               // same tag = replaces, so a chat never stacks 20 alerts
+      renotify: true,
+      timestamp: payload.ts || Date.now(),
+      data: { url },
+      vibrate: [180, 90, 180],
+      requireInteraction: payload.type === 'call',
     });
   })());
 });
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const target = new URL(event.notification.data?.url || '/notifications.html', self.location.origin).href;
-  event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
-      for (const c of list) {
-        if (new URL(c.url).origin === self.location.origin && 'focus' in c) {
-          return c.focus().then(w => (w && 'navigate' in w ? w.navigate(target) : null)).catch(() => self.clients.openWindow(target));
-        }
-      }
-      return self.clients.openWindow(target);
-    })
-  );
+  event.waitUntil(openApp(event.notification.data && event.notification.data.url));
 });
 
-// Browsers sometimes rotate a push subscription silently. Re-subscribe and tell the
-// server, otherwise this device would stop getting notifications with no error anywhere.
+// The browser rotated this device's push subscription (happens now and then).
+// Re-subscribe and tell any open page to save the new endpoint.
 self.addEventListener('pushsubscriptionchange', (event) => {
   event.waitUntil((async () => {
-    try {
-      const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-      wins.forEach(c => c.postMessage({ type: 'PUSH_RESUBSCRIBE' }));
-    } catch (_) {}
+    const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    wins.forEach((c) => c.postMessage({ type: 'cp-push-resubscribe' }));
   })());
 });

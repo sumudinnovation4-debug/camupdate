@@ -6,12 +6,24 @@ const webpush = require('web-push');
 
 // Web Push — VAPID_PUBLIC_KEY must match the key hardcoded in pwa.js.
 // VAPID_PRIVATE_KEY is a secret: set it as a Vercel env var, never commit it.
-if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
-  webpush.setVapidDetails(
-    process.env.VAPID_SUBJECT || 'mailto:info@camplugie.com',
-    process.env.VAPID_PUBLIC_KEY,
-    process.env.VAPID_PRIVATE_KEY
-  );
+// Keys pasted into Vercel often carry a stray space / newline / quote, so they are
+// cleaned here. A bad key must NEVER crash this file — it is imported by the payment
+// routes too — so any problem is recorded in `vapid.error` instead of thrown.
+const cleanEnv = (v) => String(v || '').trim().replace(/^["']|["']$/g, '').trim();
+const vapid = {
+  publicKey: cleanEnv(process.env.VAPID_PUBLIC_KEY),
+  privateKey: cleanEnv(process.env.VAPID_PRIVATE_KEY),
+  ready: false,
+  error: null,
+};
+if (vapid.publicKey && vapid.privateKey) {
+  try {
+    webpush.setVapidDetails(cleanEnv(process.env.VAPID_SUBJECT) || 'mailto:info@camplugie.com', vapid.publicKey, vapid.privateKey);
+    vapid.ready = true;
+  } catch (err) { vapid.error = err.message; console.error('VAPID setup failed:', err.message); }
+}
+function vapidStatus() {
+  return { public: !!vapid.publicKey, private: !!vapid.privateKey, ready: vapid.ready, error: vapid.error, publicKey: vapid.publicKey };
 }
 
 const PAYSTACK_BASE = 'https://api.paystack.co';
@@ -99,8 +111,8 @@ const PUSH_PREF_BY_TYPE = {
 // subscription (410 Gone / 404) is deleted so it stops being retried.
 // Returns { sent, failed, skipped } so callers/logs can see what happened.
 async function sendPush(sb, userId, { title, body, url, type, tag, icon }) {
-  const result = { sent: 0, failed: 0, skipped: null };
-  if (!process.env.VAPID_PRIVATE_KEY || !process.env.VAPID_PUBLIC_KEY) { result.skipped = 'vapid-not-configured'; return result; }
+  const result = { sent: 0, failed: 0, skipped: null, errors: [] };
+  if (!vapid.ready) { result.skipped = vapid.error ? 'vapid-invalid' : 'vapid-not-configured'; return result; }
   try {
     const { data: prefs } = await sb.from('profiles').select('*').eq('id', userId).maybeSingle();
     if (prefs && prefs.push_enabled === false) { result.skipped = 'push-disabled'; return result; }
@@ -133,6 +145,7 @@ async function sendPush(sb, userId, { title, body, url, type, tag, icon }) {
         } else {
           console.error('sendPush: delivery failed:', err.statusCode, err.message);
         }
+        result.errors.push({ status: err.statusCode || null, message: String(err.body || err.message || '').slice(0, 160) });
       }
     }));
   } catch (err) {
@@ -269,5 +282,4 @@ async function finalizeOrderPaid(sb, order_type, order) {
   catch (err) { console.error('decrementStockForOrder failed:', err.message); }
 }
 
-module.exports = { supabaseAdmin, paystack, computeCommission, setCors, notifySeller, sendPush, payAmbassadorCommission, finalizeOrderPaid, COMMISSION_RATE, AMBASSADOR_SHARE };
-        
+module.exports = { supabaseAdmin, paystack, computeCommission, setCors, notifySeller, sendPush, payAmbassadorCommission, finalizeOrderPaid, COMMISSION_RATE, AMBASSADOR_SHARE, vapidStatus };

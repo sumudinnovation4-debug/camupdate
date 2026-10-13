@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script>(function(){try{var t=localStorage.getItem('cp-theme');if(t==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}})();</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Camplugie — Group Call</title>
@@ -9,65 +8,11 @@
 @import url('https://fonts.googleapis.com/css2?family=Clash+Display:wght@500;600;700&family=Satoshi:wght@400;500;700;900&display=swap');
 
 :root {
-  --nav-h: 58px;
-  --bottom-h: 68px;
-  --radius: 18px;
-  --radius-sm: 12px;
-  --safe-top: env(safe-area-inset-top, 0px);
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
-
-  /* ===== Light theme (default) ===== */
-  --brand: #7C3AED;
-  --brand-dark: #5B21B6;
-  --brand-soft: rgba(124,58,237,0.10);
-  --accent: #B45309;
-  --accent-soft: rgba(180,83,9,0.10);
-  --money: #059669;
-  --danger: #E11D48;
-
-  --bg: #FAFAFC;
-  --bg-gradient: radial-gradient(circle at 20% -10%, rgba(124,58,237,0.07), transparent 40%), linear-gradient(180deg, #FFFFFF 0%, #FAFAFC 100%);
-  --surface: #FFFFFF;
-  --surface2: #F4F3F8;
-  --surface3: #ECEAF3;
-  --border: rgba(20,10,40,0.09);
-
-  --text: #16121F;
-  --text2: #4B455C;
-  --text3: #7A7390;
-
-  --shadow: 0 10px 26px rgba(20,10,40,0.08);
-  --shadow-lg: 0 24px 60px rgba(20,10,40,0.14);
-
-  --glass: rgba(255,255,255,0.85);
-  --glass-strong: rgba(255,255,255,0.92);
-}
-
-:root[data-theme="dark"] {
-  --brand: #A78BFA;
-  --brand-dark: #7C3AED;
-  --brand-soft: rgba(167, 139, 250, 0.14);
-  --accent: #FBBF24;
-  --accent-soft: rgba(251, 191, 36, 0.14);
-  --money: #34D399;
-  --danger: #FB7185;
-
-  --bg: #090714;
-  --bg-gradient: radial-gradient(circle at 20% -10%, rgba(124,58,237,0.34), transparent 36%), linear-gradient(180deg, #0E0A1D 0%, #090714 100%);
-  --surface: #12101D;
-  --surface2: #1A1729;
-  --surface3: #242039;
-  --border: rgba(255,255,255,0.10);
-
-  --text: #F8F6FF;
-  --text2: #C9C3DE;
-  --text3: #8D86AA;
-
-  --shadow: 0 14px 38px rgba(0,0,0,0.28);
-  --shadow-lg: 0 24px 80px rgba(0,0,0,0.48);
-
-  --glass: rgba(9, 7, 20, 0.88);
-  --glass-strong: rgba(18, 16, 29, 0.92);
+  --brand: #A78BFA; --brand-dark: #7C3AED; --brand-soft: rgba(167,139,250,0.14);
+  --accent: #FBBF24; --accent-soft: rgba(251,191,36,0.16); --money: #34D399; --danger: #FB7185;
+  --bg: #090714; --surface: #12101D; --surface2: #1A1729; --surface3: #242039; --border: rgba(255,255,255,0.10);
+  --text: #F8F6FF; --text2: #C9C3DE; --text3: #8D86AA;
+  --safe-top: env(safe-area-inset-top, 0px); --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
@@ -165,6 +110,35 @@ button { font-family: inherit; }
 .gc-student-tile .badge { position: absolute; top: 4px; right: 4px; font-size: 12px; }
 .gc-empty-strip { color: var(--text3); font-size: 12px; padding: 12px 4px; }
 
+/* Lecture viewer: pinch-zoom, full screen, sound button */
+.gc-stage.lecture { padding: 0; }
+.gc-stage.lecture .gc-lecture-stage { border-radius: 0; }
+.gc-lecture-stage { touch-action: none; }
+.gc-expand {
+  position: absolute; top: 8px; right: 8px; z-index: 6; width: 40px; height: 40px; border-radius: 50%;
+  border: 0; background: rgba(0,0,0,.55); color: #fff; display: flex; align-items: center; justify-content: center;
+  backdrop-filter: blur(6px); cursor: pointer;
+}
+.gc-expand svg { width: 20px; height: 20px; }
+.gc-sound {
+  position: fixed; left: 50%; transform: translateX(-50%); top: calc(var(--safe-top) + 64px); z-index: 90;
+  background: var(--accent); color: #1A1200; border: 0; border-radius: 999px; padding: 11px 18px;
+  font: inherit; font-size: 13px; font-weight: 800; box-shadow: 0 8px 24px rgba(0,0,0,.45); max-width: calc(100vw - 24px);
+}
+/* Expanded: the stage covers the whole screen (escaping the 480px column) and the
+   controls float over it, fading out after a few seconds so the board is unobstructed. */
+body.gc-expanded .gc-frame { transform: none; left: 0; max-width: none; width: 100%; border: 0; }
+body.gc-expanded .gc-header { display: none; }
+body.gc-expanded .gc-stage.lecture { position: fixed; inset: 0; z-index: 70; background: #000; }
+body.gc-expanded .gc-lecture-stage { position: fixed; inset: 0; border-radius: 0; z-index: 70; }
+body.gc-expanded #gcLectureHint, body.gc-expanded #gcStudentStrip { display: none; }
+body.gc-expanded .gc-expand { z-index: 85; top: calc(var(--safe-top) + 10px); transition: opacity .25s; }
+body.gc-expanded .gc-controls {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 80; padding-top: 30px;
+  background: linear-gradient(transparent, rgba(0,0,0,.78)); transition: opacity .25s;
+}
+body.gc-expanded.gc-ui-hidden .gc-controls, body.gc-expanded.gc-ui-hidden .gc-expand { opacity: 0; pointer-events: none; }
+
 /* ---- controls ---- */
 .gc-controls {
   display: flex; align-items: center; justify-content: center;
@@ -239,6 +213,7 @@ button { font-family: inherit; }
   <!-- Lecture mode -->
   <div id="gcLecture" style="display:none">
     <div class="gc-lecture-stage" id="gcLectureStage">
+      <button class="gc-expand" id="gcExpandBtn" type="button" aria-label="Full screen"></button>
       <div class="gc-avatar" id="gcStagePlaceholder">··</div>
       <div class="gc-stage-label" id="gcStageLabel" style="display:none"></div>
     </div>
@@ -256,6 +231,11 @@ button { font-family: inherit; }
   <button class="gc-ctl" id="camBtn" aria-label="Camera">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
     <span class="lbl">Camera</span>
+  </button>
+
+  <button class="gc-ctl" id="flipBtn" aria-label="Flip camera" style="display:none">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-15-6.7L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 15 6.7L21 16"/><path d="M21 21v-5h-5"/></svg>
+    <span class="lbl">Flip</span>
   </button>
 
   <button class="gc-ctl" id="shareBtn" aria-label="Share screen" style="display:none">
@@ -283,6 +263,7 @@ button { font-family: inherit; }
 
 <div class="gc-sheet-bd" id="gcSheet"><div class="gc-sheet" id="gcSheetBody"></div></div>
 <div class="gc-toast" id="gcToast"></div>
+<button class="gc-sound" id="gcSoundBtn" type="button" style="display:none"></button>
 <div id="gcHidden"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -353,6 +334,8 @@ let myUserId = null, myName = 'Someone';
 let iceServers = [];
 let signalChannel = null;
 let localStream = null;          // raw mic (+ camera in general / host lecture)
+let facing = 'user';             // which camera: 'user' (front) / 'environment' (back — point it at the board)
+let hostOutStream = null;        // lecturer: ONE MediaStream carrying both the canvas video and the mixed audio
 let micOn = !isStudent;          // students join muted
 let camOn = !isStudent;          // students join with no camera
 let handUp = false;
@@ -420,7 +403,9 @@ document.addEventListener('cp-ready', async (e) => {
   try {
     localStream = await navigator.mediaDevices.getUserMedia({
       audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-      video: isStudent ? false : { width: { ideal: 960 }, height: { ideal: 720 }, facingMode: 'user' },
+      video: isStudent ? false : (isHost && isLecture
+        ? { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: facing }      // sharp enough to read a board
+        : { width: { ideal: 960 }, height: { ideal: 720 }, facingMode: facing }),
     });
   } catch (err) {
     console.error('getUserMedia failed:', err);
@@ -433,12 +418,21 @@ document.addEventListener('cp-ready', async (e) => {
 
   // Students start muted at the track level so nothing leaks before they're called up.
   localStream.getAudioTracks().forEach(t => { t.enabled = micOn; });
+  updateControls();
+  if (isLecture) document.querySelector('.gc-stage').classList.add('lecture');
 
   if (isHost && isLecture) setupHostPipeline();
   if (!isLecture) renderSelfTile();
 
   await joinSignalChannel();
 
+  $('flipBtn').addEventListener('click', flipCamera);
+  $('gcExpandBtn').innerHTML = ICON_EXPAND;
+  $('gcExpandBtn').addEventListener('click', () => setExpanded(!expanded));
+  $('gcSoundBtn').addEventListener('click', unlockAudio);
+  ['pointerdown', 'touchend', 'click', 'keydown'].forEach(ev => document.addEventListener(ev, unlockAudio, { passive: true }));
+  document.querySelector('.gc-controls').addEventListener('pointerdown', () => showUI());
+  initStageGestures();
   $('micBtn').addEventListener('click', toggleMic);
   $('camBtn').addEventListener('click', toggleCam);
   $('shareBtn').addEventListener('click', toggleScreenShare);
@@ -530,7 +524,7 @@ function createPeer(targetId, polite, initiate) {
   pc.onconnectionstatechange = () => {
     if (ended) return;
     if (pc.connectionState === 'failed') { peer.tileEl?.classList.add('offline'); tryIceRestart(targetId); }
-    if (pc.connectionState === 'connected') peer.tileEl?.classList.remove('offline');
+    if (pc.connectionState === 'connected') { peer.tileEl?.classList.remove('offline'); if (isHost && isLecture) { boostVideoSenders(pc); setTimeout(() => boostVideoSenders(pc), 1500); } }
   };
   pc.onnegotiationneeded = async () => {
     try {
@@ -551,8 +545,12 @@ function attachOutboundTracks(pc) {
     // One stable canvas video track + one stable mixed audio track.
     const v = canvasStream?.getVideoTracks()[0];
     const a = mixDest?.stream.getAudioTracks()[0] || localStream.getAudioTracks()[0];
-    if (a) pc.addTrack(a, mixDest ? mixDest.stream : localStream);
-    if (v) pc.addTrack(v, canvasStream);
+    // BOTH tracks go in the SAME MediaStream. They used to be sent as two different
+    // streams, so each student's <video> got only the last one to arrive (the video)
+    // and played with no sound at all.
+    if (!hostOutStream) hostOutStream = new MediaStream([a, v].filter(Boolean));
+    if (a) pc.addTrack(a, hostOutStream);
+    if (v) pc.addTrack(v, hostOutStream);
   } else {
     localStream.getAudioTracks().forEach(t => pc.addTrack(t, localStream));
     const vt = localStream.getVideoTracks()[0];
@@ -652,8 +650,12 @@ function prepareStudentTransceivers(pc) {
 function handleTrack(fromId, e) {
   const peer = peers[fromId];
   if (!peer) return;
-  const [stream] = e.streams;
-  peer.stream = stream || peer.stream;
+  // Build ONE stream per person out of the individual tracks, so audio and video
+  // always end up on the same <video> element no matter how the sender grouped them.
+  if (!peer.stream) peer.stream = new MediaStream();
+  peer.stream.getTracks().forEach(t => { if (t.kind === e.track.kind && t !== e.track) peer.stream.removeTrack(t); });
+  if (!peer.stream.getTracks().includes(e.track)) peer.stream.addTrack(e.track);
+  const stream = peer.stream;
 
   if (e.track.kind === 'video') {
     peer.hasVideo = true;
@@ -690,6 +692,7 @@ function paintPeerMedia(userId) {
     if (!peer.tileEl) return;
     const v = peer.tileEl.querySelector('video');
     if (v && peer.stream && v.srcObject !== peer.stream) v.srcObject = peer.stream;
+    if (v) playRemote(v);
     peer.tileEl.classList.toggle('no-video', !peer.hasVideo);
     peer.tileEl.classList.toggle('muted', !!peer.micMuted);
     return;
@@ -704,9 +707,10 @@ function paintPeerMedia(userId) {
       v.autoplay = true; v.playsInline = true;
       st.insertBefore(v, st.firstChild);
       $('gcStagePlaceholder').style.display = 'none';
+      applyZoom();
     }
     if (peer.stream && v.srcObject !== peer.stream) v.srcObject = peer.stream;
-    v.play().catch(() => {});
+    playRemote(v);
   }
   // Host: student video never renders directly — it goes through the canvas.
 }
@@ -818,6 +822,7 @@ function setupHostPipeline() {
   canvasCtx = canvasEl.getContext('2d', { alpha: false });
   drawFrame();
   canvasStream = canvasEl.captureStream(24);
+  try { canvasStream.getVideoTracks()[0].contentHint = 'detail'; } catch (_) {}   // favour sharp text over smoothness
 
   // Host previews exactly what the class sees.
   const st = $('gcLectureStage');
@@ -838,8 +843,13 @@ function setupHostPipeline() {
     audioCtx.createMediaStreamSource(localStream).connect(micGain);
     micGain.connect(mixDest);
     micGain.connect(micOnlyDest);
-    // Some browsers suspend the context until a gesture.
-    document.addEventListener('click', () => audioCtx.resume().catch(() => {}), { once: true });
+    // Browsers start an AudioContext 'suspended' until the page is tapped — and a
+    // suspended mixer sends SILENCE to the whole class. Resume it as early as
+    // possible, keep nudging it, and show a button if it still won't start.
+    audioCtx.resume().catch(() => {});
+    audioCtx.onstatechange = () => { if (audioCtx.state === 'running') unlockAudio(); };
+    if (audioCtx.state !== 'running') showSoundBtn('🎙 Tap here to start your audio — students can’t hear you yet');
+    setInterval(() => { if (audioCtx && audioCtx.state !== 'running' && !ended) audioCtx.resume().catch(() => {}); }, 1500);
   } catch (err) {
     console.warn('WebAudio mixing unavailable, falling back to raw mic:', err);
     mixDest = null; micOnlyDest = null;
@@ -851,14 +861,20 @@ function drawFrame() {
   rafId = requestAnimationFrame(drawFrame);
   if (!canvasCtx) return;
 
-  const W = canvasEl.width, H = canvasEl.height;
-  canvasCtx.fillStyle = '#0B0918';
-  canvasCtx.fillRect(0, 0, W, H);
-
   const cam = (selfVideoEl && selfVideoEl.readyState >= 2 && camOn) ? selfVideoEl : null;
   const screen = (screenVideo && screenVideo.readyState >= 2) ? screenVideo : null;
   const spot = (stage && stage.video) ? document.getElementById('hid-' + stage.uid) : null;
   const spotReady = spot && spot.readyState >= 2;
+
+  // Camera alone: match its shape. A phone held upright is PORTRAIT — squeezing that
+  // into a landscape frame cropped it to a thin strip and made the board unreadable.
+  let tw = 1280, th = 720;
+  if (!screen && !spotReady && cam && cam.videoHeight > cam.videoWidth) { tw = 720; th = 1280; }
+  if (canvasEl.width !== tw || canvasEl.height !== th) { canvasEl.width = tw; canvasEl.height = th; }
+
+  const W = canvasEl.width, H = canvasEl.height;
+  canvasCtx.fillStyle = '#0B0918';
+  canvasCtx.fillRect(0, 0, W, H);
 
   if (screen) {
     // Slides fill the frame; the lecturer sits bottom-right, the student bottom-left.
@@ -1272,10 +1288,167 @@ function updateControls() {
   $('micLbl').textContent = micOn ? 'Mute' : 'Unmute';
   $('camBtn').classList.toggle('off', !camOn);
 
+  $('flipBtn').style.display = (!isStudent && localStream?.getVideoTracks()[0]) ? 'flex' : 'none';
   if (isStudent) {
     $('camBtn').style.display = localStream?.getVideoTracks()[0] ? 'flex' : 'none';
     $('micBtn').disabled = false;
   }
+}
+
+/* ============================================================
+   SOUND UNLOCK · BIG-SCREEN VIEWER · FLIP CAMERA · VIDEO QUALITY
+   ============================================================ */
+
+// Phones block sound from starting by itself until the page has been tapped.
+// So: start the video anyway (muted), turn the sound on at the very first tap
+// anywhere, and show a button in case they don't tap anything else first.
+function playRemote(v) {
+  v.dataset.remote = '1';
+  const p = v.play();
+  if (p && p.catch) p.catch(() => {
+    v.muted = true; v.dataset.forcedMute = '1';
+    v.play().catch(() => {});
+    showSoundBtn(isLecture ? '🔊 Tap to hear the lecturer' : '🔊 Tap to hear the call');
+  });
+}
+function showSoundBtn(text) { const b = $('gcSoundBtn'); if (!b) return; b.textContent = text; b.style.display = 'block'; }
+function unlockAudio() {
+  const hide = () => { const b = $('gcSoundBtn'); if (b && (!audioCtx || audioCtx.state === 'running') && !document.querySelector('video[data-forced-mute]')) b.style.display = 'none'; };
+  document.querySelectorAll('video[data-forced-mute]').forEach(v => {
+    v.muted = false; v.removeAttribute('data-forced-mute'); v.play().catch(() => {});
+  });
+  if (audioCtx && audioCtx.state !== 'running') audioCtx.resume().then(hide, hide); else hide();
+}
+
+// Lecturer video: sharp and steady beats smooth. Up to 2.5 Mbps and never drop resolution.
+function boostVideoSenders(pc) {
+  pc.getSenders().filter(s => s.track && s.track.kind === 'video').forEach(async (s) => {
+    try {
+      const p = s.getParameters();
+      if (!p.encodings || !p.encodings.length) p.encodings = [{}];
+      p.encodings[0].maxBitrate = 2500000;
+      p.encodings[0].maxFramerate = 24;
+      p.degradationPreference = 'maintain-resolution';
+      await s.setParameters(p);
+    } catch (e) { console.warn('boostVideo:', e.message); }
+  });
+}
+
+// Front ↔ back camera. The back camera is the one you point at a board.
+async function flipCamera() {
+  const old = localStream && localStream.getVideoTracks()[0];
+  if (!old) return;
+  const next = facing === 'user' ? 'environment' : 'user';
+  let ns;
+  try { ns = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: next }, width: { ideal: 1280 }, height: { ideal: 720 } } }); }
+  catch (_) {
+    try { ns = await navigator.mediaDevices.getUserMedia({ video: { facingMode: next } }); }
+    catch (__) { toast('This phone has no other camera.'); return; }
+  }
+  const nt = ns.getVideoTracks()[0];
+  nt.enabled = camOn;
+  localStream.removeTrack(old); old.stop(); localStream.addTrack(nt);
+  facing = next;
+  // General call: swap on every connection that is sending our camera.
+  Object.values(peers).forEach(pr => pr.pc && pr.pc.getSenders().forEach(s => { if (s.track === old) s.replaceTrack(nt).catch(() => {}); }));
+  // Re-point the elements that were showing the old camera (lecture: the canvas draws from selfVideoEl).
+  const refresh = (el) => { if (el) { el.srcObject = null; el.srcObject = localStream; el.play().catch(() => {}); } };
+  refresh(selfVideoEl); refresh(document.querySelector('#tile-self video'));
+  toast(next === 'environment' ? 'Back camera on' : 'Front camera on');
+}
+
+/* ---- big-screen viewer: full screen, pinch-to-zoom, double-tap ---- */
+const ICON_EXPAND = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>';
+const ICON_SHRINK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/></svg>';
+let expanded = false, usedFs = false, uiTimer = null;
+const Z = { s: 1, x: 0, y: 0 };
+const ptrs = new Map();
+let pinchDist = 0, tapMoved = false, lastTap = 0;
+
+function stageVideo() { return $('gcLectureStage').querySelector('video'); }
+function applyZoom() {
+  const v = stageVideo(); if (!v) return;
+  const st = $('gcLectureStage'), W = st.clientWidth, H = st.clientHeight;
+  Z.s = Math.min(5, Math.max(1, Z.s));
+  Z.x = Math.min(0, Math.max(W * (1 - Z.s), Z.x));
+  Z.y = Math.min(0, Math.max(H * (1 - Z.s), Z.y));
+  v.style.transformOrigin = '0 0';
+  v.style.transform = Z.s === 1 ? '' : `translate(${Z.x}px, ${Z.y}px) scale(${Z.s})`;
+}
+function resetZoom() { Z.s = 1; Z.x = 0; Z.y = 0; applyZoom(); }
+function zoomAbout(cx, cy, ratio) {
+  const r = $('gcLectureStage').getBoundingClientRect();
+  const mx = cx - r.left, my = cy - r.top;
+  const s2 = Math.min(5, Math.max(1, Z.s * ratio)), k = s2 / Z.s;
+  Z.x = mx - (mx - Z.x) * k; Z.y = my - (my - Z.y) * k; Z.s = s2;
+  applyZoom();
+}
+function showUI() {
+  document.body.classList.remove('gc-ui-hidden');
+  clearTimeout(uiTimer);
+  if (expanded) uiTimer = setTimeout(() => document.body.classList.add('gc-ui-hidden'), 4000);
+}
+function toggleUI() {
+  if (document.body.classList.contains('gc-ui-hidden')) showUI();
+  else { clearTimeout(uiTimer); document.body.classList.add('gc-ui-hidden'); }
+}
+function setExpanded(on) {
+  expanded = on;
+  document.body.classList.toggle('gc-expanded', on);
+  $('gcExpandBtn').innerHTML = on ? ICON_SHRINK : ICON_EXPAND;
+  $('gcExpandBtn').setAttribute('aria-label', on ? 'Exit full screen' : 'Full screen');
+  if (on) {
+    toast('Pinch to zoom · double-tap to reset · turn your phone sideways for a wider view', 4200);
+    const el = document.documentElement;
+    if (el.requestFullscreen) {
+      el.requestFullscreen({ navigationUI: 'hide' }).then(() => {
+        usedFs = true;
+        try { screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape').catch(() => {}); } catch (_) {}
+      }).catch(() => {});
+    }
+    showUI();
+  } else {
+    clearTimeout(uiTimer); document.body.classList.remove('gc-ui-hidden');
+    try { screen.orientation && screen.orientation.unlock && screen.orientation.unlock(); } catch (_) {}
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    usedFs = false; resetZoom();
+  }
+  setTimeout(applyZoom, 60);
+}
+document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && expanded && usedFs) setExpanded(false); });
+window.addEventListener('resize', () => applyZoom());
+
+function initStageGestures() {
+  const st = $('gcLectureStage');
+  st.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('button')) return;
+    try { st.setPointerCapture(e.pointerId); } catch (_) {}
+    ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (ptrs.size === 1) tapMoved = false;
+    if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinchDist = Math.hypot(a.x - b.x, a.y - b.y); tapMoved = true; }
+  });
+  st.addEventListener('pointermove', (e) => {
+    const prev = ptrs.get(e.pointerId); if (!prev) return;
+    const cur = { x: e.clientX, y: e.clientY };
+    if (Math.hypot(cur.x - prev.x, cur.y - prev.y) > 3) tapMoved = true;
+    if (ptrs.size === 1 && Z.s > 1) { Z.x += cur.x - prev.x; Z.y += cur.y - prev.y; applyZoom(); }
+    ptrs.set(e.pointerId, cur);
+    if (ptrs.size === 2) {
+      const [a, b] = [...ptrs.values()], d = Math.hypot(a.x - b.x, a.y - b.y);
+      if (pinchDist) zoomAbout((a.x + b.x) / 2, (a.y + b.y) / 2, d / pinchDist);
+      pinchDist = d;
+    }
+  });
+  const up = (e) => {
+    const wasTap = ptrs.size === 1 && ptrs.has(e.pointerId) && !tapMoved && e.type === 'pointerup';
+    ptrs.delete(e.pointerId); pinchDist = 0;
+    if (!wasTap || e.target.closest('button')) return;
+    const now = Date.now();
+    if (now - lastTap < 320) { lastTap = 0; if (Z.s > 1) resetZoom(); else zoomAbout(e.clientX, e.clientY, 2.5); }
+    else { lastTap = now; setTimeout(() => { if (lastTap && Date.now() - lastTap >= 300) { lastTap = 0; if (expanded) toggleUI(); } }, 320); }
+  };
+  st.addEventListener('pointerup', up);
+  st.addEventListener('pointercancel', up);
 }
 
 /* ============================================================
@@ -1351,20 +1524,5 @@ async function leaveCall(silent) {
   if (!silent) window.location.href = `group-thread.html?id=${groupId}`;
 }
 </script>
-<button id="cpThemeToggle" aria-label="Toggle dark mode" style="position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 84px);right:14px;z-index:999;width:36px;height:36px;border-radius:50%;border:1px solid var(--border);background:var(--surface2);color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:var(--shadow);font-size:16px;line-height:1;">🌙</button>
-<script>(function(){
-  var btn = document.getElementById('cpThemeToggle');
-  if (!btn) return;
-  function isDark(){ return document.documentElement.getAttribute('data-theme') === 'dark'; }
-  function sync(){ btn.textContent = isDark() ? '☀️' : '🌙'; }
-  sync();
-  btn.addEventListener('click', function(){
-    var next = isDark() ? '' : 'dark';
-    if (next) { document.documentElement.setAttribute('data-theme','dark'); }
-    else { document.documentElement.removeAttribute('data-theme'); }
-    try { localStorage.setItem('cp-theme', next || 'light'); } catch(e){}
-    sync();
-  });
-})();</script>
 </body>
 </html>

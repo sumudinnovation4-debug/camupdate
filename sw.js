@@ -6,7 +6,7 @@
      - offline navigation: fall back to the cached page, then offline.html
 */
 
-const VERSION = 'camplugie-v4';
+const VERSION = 'camplugie-v5';
 const SHELL = [
   '/', '/home.html', '/market.html', '/notifications.html', '/yard.html',
   '/profile.html', '/create.html', '/chat-thread.html', '/group-thread.html',

@@ -822,6 +822,11 @@ img { max-width: 100%; display: block; }
         <div class="settings-row-text"><b>Push notifications</b><span>Get alerted on this device</span></div>
         <label class="switch"><input type="checkbox" id="toggle-push_enabled" checked><span class="switch-track"></span></label>
       </div>
+      <div class="settings-row" style="flex-direction:column;align-items:stretch;gap:10px">
+        <div class="settings-row-text"><b>Notifications not arriving?</b><span>Sends a test and tells you exactly what is wrong</span></div>
+        <button type="button" id="pushTestBtn" style="background:var(--brand,#a78bfa);color:#fff;border:0;border-radius:12px;padding:12px;font:inherit;font-weight:800;cursor:pointer">Send test notification</button>
+        <div id="pushTestOut" style="display:none;font-size:13px;line-height:1.45"></div>
+      </div>
       <div class="settings-row">
         <div class="settings-row-text"><b>New messages</b><span>Chat activity from buyers &amp; sellers</span></div>
         <label class="switch"><input type="checkbox" id="toggle-notify_messages" checked><span class="switch-track"></span></label>
@@ -999,7 +1004,9 @@ TOGGLE_KEYS.forEach(key => {
       const ok = await window.CamplugiePWA?.push?.subscribe(window.CP_USER.id);
       if (!ok) {
         input.checked = false;
-        alert('Notifications are blocked for Camplugie in your browser/device settings. Enable them there, then try this toggle again.');
+        alert(Notification.permission === 'denied'
+          ? 'Notifications are blocked for Camplugie in your browser/device settings. Enable them there, then try this toggle again.'
+          : 'Could not turn notifications on for this device. Tap “Send test notification” below to see exactly why.');
         return;
       }
     } else if (key === 'push_enabled' && !input.checked) {
@@ -1011,6 +1018,17 @@ TOGGLE_KEYS.forEach(key => {
   });
 });
 
+
+document.getElementById('pushTestBtn').addEventListener('click', async (e) => {
+  const btn = e.currentTarget, out = document.getElementById('pushTestOut');
+  btn.disabled = true; btn.textContent = 'Checking…'; out.style.display = 'block'; out.textContent = '';
+  const esc = (t) => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  try {
+    const lines = await window.CamplugiePWA.push.diagnose();
+    out.innerHTML = lines.map(l => `<div style="margin:6px 0"><b>${l.ok ? '✅' : '❌'} ${esc(l.name)}</b><br><span style="color:var(--text3)">${esc(l.detail)}</span></div>`).join('');
+  } catch (err) { out.textContent = 'Could not run the check: ' + err.message; }
+  btn.disabled = false; btn.textContent = 'Send test notification again';
+});
 
 document.getElementById('changePasswordBtn').addEventListener('click', async (e) => {
   e.preventDefault();

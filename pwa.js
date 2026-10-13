@@ -362,6 +362,54 @@
     }).catch(function (e) { console.warn('[pwa] push subscribe failed', e); return false; });
   }
 
+  // Walks the whole push chain for this phone and returns [{ok,name,detail}] in plain
+  // English (used by Settings → "Send test notification"). Also asks the server to check
+  // its keys + saved devices and to send a real test push.
+  function diagnosePush() {
+    var lines = [];
+    function add(ok, name, detail) { lines.push({ ok: ok, name: name, detail: detail }); }
+    return (async function () {
+      if (!pushSupported()) {
+        add(false, 'This phone', 'This browser can’t receive push notifications. On iPhone, first add Camplugie to your Home Screen and open it from there.');
+        return lines;
+      }
+      add(true, 'This phone', isStandalone() ? 'Push is supported (running as the installed app).' : 'Push is supported (running in the browser — install the app for app-style alerts).');
+      if (Notification.permission === 'denied') {
+        add(false, 'Permission', 'Notifications are BLOCKED for Camplugie. Open your phone Settings → Apps → Camplugie (or Chrome → Site settings) → Notifications → Allow. Then try again.');
+        return lines;
+      }
+      if (Notification.permission !== 'granted') {
+        add(false, 'Permission', 'Not allowed yet. Switch Push notifications off and on, and tap Allow when the phone asks.');
+        return lines;
+      }
+      add(true, 'Permission', 'Allowed.');
+
+      var sub = null;
+      try {
+        var reg = await navigator.serviceWorker.getRegistration();
+        if (!reg || !reg.active) add(false, 'App worker', 'The background worker is not running yet. Close the app fully, reopen it, and try again.');
+        else { add(true, 'App worker', 'Running.'); sub = await reg.pushManager.getSubscription(); }
+      } catch (e) { add(false, 'App worker', 'Could not read the background worker: ' + e.message); }
+      if (!sub) add(false, 'Subscription', 'This phone has not registered for push yet. Switch Push notifications off and on in Settings.');
+      else add(true, 'Subscription', 'This phone is registered with the push service.');
+
+      try {
+        var sess = await window.sb.auth.getSession();
+        var token = sess && sess.data && sess.data.session && sess.data.session.access_token;
+        var r = await fetch('/api/push-test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+          body: JSON.stringify({ endpoint: sub && sub.endpoint, appKey: VAPID_PUBLIC_KEY }),
+        });
+        var j = await r.json().catch(function () { return {}; });
+        if (r.status === 404) add(false, 'Server', 'The test endpoint was not found. Upload api/push-test.js to GitHub and let Vercel redeploy.');
+        else if (j.steps) j.steps.forEach(function (st) { lines.push(st); });
+        else add(false, 'Server', j.error || ('The server answered ' + r.status + '. Check the Vercel logs for /api/push-test.'));
+      } catch (e) { add(false, 'Server', 'Could not reach the server: ' + e.message); }
+      return lines;
+    })();
+  }
+
   // Unsubscribes this device and removes its row so the server stops
   // trying to push to it.
   function unsubscribePush() {
@@ -495,6 +543,8 @@
       supported: pushSupported,
       permission: pushPermission,
       subscribe: subscribePush,
+      diagnose: diagnosePush,
+      publicKey: VAPID_PUBLIC_KEY,
       unsubscribe: unsubscribePush
     }
   };

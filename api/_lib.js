@@ -97,62 +97,98 @@ async function sendEmail({ to, subject, text }) {
 }
 
 // Which profile toggle (Settings → Notifications) governs which kind of push.
-// Anything not listed here (security alerts, admin messages…) always goes
+// Anything not listed here (security alerts, admin messages, tests…) always goes
 // through as long as the master "push_enabled" switch is on.
 const PUSH_PREF_BY_TYPE = {
-  message: 'notify_messages', group_message: 'notify_messages', mention: 'notify_messages',
+  message: 'notify_messages',
+  group_message: 'notify_groups', mention: 'notify_groups', group_added: 'notify_groups',
+  call: 'notify_calls', group_call: 'notify_calls',
+  listing: 'notify_listings', post: 'notify_posts',
   order: 'notify_orders', swift: 'notify_orders', payment: 'notify_orders', escrow: 'notify_orders',
   like: 'notify_yard', comment: 'notify_yard', follow: 'notify_yard', yard: 'notify_yard',
 };
 
-// Pushes a real device notification to every device this user has ever
-// subscribed on (push_subscriptions can hold several rows per user — one
-// per browser/device). Honours the person's own switches in Settings. A dead
-// subscription (410 Gone / 404) is deleted so it stops being retried.
-// Returns { sent, failed, skipped } so callers/logs can see what happened.
-async function sendPush(sb, userId, { title, body, url, type, tag, icon }) {
-  const result = { sent: 0, failed: 0, skipped: null, errors: [] };
-  if (!vapid.ready) { result.skipped = vapid.error ? 'vapid-invalid' : 'vapid-not-configured'; return result; }
+// Pushes ONE message to MANY people at once (new listing, new post, group chat, call…).
+//  • 2 bulk database reads instead of 2 per person  → fast even for big campuses
+//  • honours each person's Settings switches
+//  • sends with limited parallelism so a big fan-out finishes inside the function time limit
+//  • dead subscriptions (410/404) are deleted in one go
+// msg: { title, body, url, type, tag, icon, eventAt, ttl, urgency, requireInteraction, actions, data }
+// Returns { targets, users, sent, failed, skipped, errors }.
+async function pushToUsers(sb, userIds, msg, opts = {}) {
+  const out = { targets: 0, users: 0, sent: 0, failed: 0, skipped: null, errors: [] };
+  if (!vapid.ready) { out.skipped = vapid.error ? 'vapid-invalid' : 'vapid-not-configured'; return out; }
+  const ids = [...new Set((userIds || []).filter(Boolean))];
+  out.targets = ids.length;
+  if (!ids.length) { out.skipped = 'no-recipients'; return out; }
+
+  const prefKey = PUSH_PREF_BY_TYPE[msg.type];
+  const concurrency = opts.concurrency || 40;
+  const dead = [];
+  const jobs = [];
+  const payload = JSON.stringify({
+    title: msg.title || 'Camplugie',
+    body: String(msg.body || '').slice(0, 180),
+    url: msg.url || '/notifications.html',
+    type: msg.type || 'general',
+    tag: msg.tag || msg.type || 'camplugie',
+    icon: msg.icon, ts: Date.now(), ev: msg.eventAt ? new Date(msg.eventAt).getTime() : null,
+    requireInteraction: !!msg.requireInteraction, actions: msg.actions || undefined, data: msg.data || undefined,
+  });
+  const sendOpts = { TTL: msg.ttl || 60 * 60 * 24, urgency: msg.urgency || 'high' };
+
   try {
-    const { data: prefs } = await sb.from('profiles').select('*').eq('id', userId).maybeSingle();
-    if (prefs && prefs.push_enabled === false) { result.skipped = 'push-disabled'; return result; }
-    const prefKey = PUSH_PREF_BY_TYPE[type];
-    if (prefs && prefKey && prefs[prefKey] === false) { result.skipped = `${prefKey}-off`; return result; }
-
-    const { data: subs } = await sb.from('push_subscriptions').select('*').eq('user_id', userId);
-    if (!subs || !subs.length) { result.skipped = 'no-subscriptions'; return result; }
-
-    const payload = JSON.stringify({
-      title: title || 'Camplugie',
-      body: (body || '').slice(0, 180),
-      url: url || '/notifications.html',
-      type: type || 'general',
-      tag: tag || type || 'camplugie',
-      icon, ts: Date.now(),
-    });
-    await Promise.all(subs.map(async (s) => {
-      try {
-        await webpush.sendNotification(
-          { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
-          payload,
-          { TTL: 60 * 60 * 24, urgency: 'high' }
-        );
-        result.sent++;
-      } catch (err) {
-        result.failed++;
-        if (err.statusCode === 404 || err.statusCode === 410) {
-          await sb.from('push_subscriptions').delete().eq('endpoint', s.endpoint);
-        } else {
-          console.error('sendPush: delivery failed:', err.statusCode, err.message);
-        }
-        result.errors.push({ status: err.statusCode || null, message: String(err.body || err.message || '').slice(0, 160) });
+    for (let i = 0; i < ids.length; i += 150) {
+      const chunk = ids.slice(i, i + 150);
+      const [{ data: profs }, { data: subs }] = await Promise.all([
+        sb.from('profiles').select('*').in('id', chunk),
+        sb.from('push_subscriptions').select('*').in('user_id', chunk),
+      ]);
+      const allowed = new Set((profs || [])
+        .filter(p => p.push_enabled !== false && (!prefKey || p[prefKey] !== false))
+        .map(p => p.id));
+      const seenUsers = new Set();
+      for (const sub of (subs || [])) {
+        if (!allowed.has(sub.user_id)) continue;
+        seenUsers.add(sub.user_id);
+        jobs.push(sub);
       }
-    }));
+      out.users += seenUsers.size;
+    }
+    if (!jobs.length) { out.skipped = 'no-subscriptions-or-switched-off'; return out; }
+
+    let next = 0;
+    const worker = async () => {
+      while (next < jobs.length) {
+        const sub = jobs[next++];
+        try {
+          await webpush.sendNotification({ endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } }, payload, sendOpts);
+          out.sent++;
+        } catch (err) {
+          out.failed++;
+          if (err.statusCode === 404 || err.statusCode === 410) dead.push(sub.endpoint);
+          if (out.errors.length < 5) out.errors.push({ status: err.statusCode || null, message: String(err.body || err.message || '').slice(0, 160) });
+          if (err.statusCode !== 404 && err.statusCode !== 410) console.error('push delivery failed:', err.statusCode, err.message);
+        }
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(concurrency, jobs.length) }, worker));
+
+    if (dead.length) {
+      for (let i = 0; i < dead.length; i += 100) {
+        await sb.from('push_subscriptions').delete().in('endpoint', dead.slice(i, i + 100)).then(() => {}, () => {});
+      }
+    }
   } catch (err) {
-    console.error('sendPush failed:', err.message);
-    result.skipped = 'error';
+    console.error('pushToUsers failed:', err.message);
+    out.skipped = 'error';
   }
-  return result;
+  return out;
+}
+
+// One person (kept for the existing callers: send-push.js, push-test.js, notify-*).
+async function sendPush(sb, userId, msg) {
+  return pushToUsers(sb, [userId], msg);
 }
 
 // Writes the in-app notification row and emails the user. The device push
@@ -282,4 +318,4 @@ async function finalizeOrderPaid(sb, order_type, order) {
   catch (err) { console.error('decrementStockForOrder failed:', err.message); }
 }
 
-module.exports = { supabaseAdmin, paystack, computeCommission, setCors, notifySeller, sendPush, payAmbassadorCommission, finalizeOrderPaid, COMMISSION_RATE, AMBASSADOR_SHARE, vapidStatus };
+module.exports = { supabaseAdmin, paystack, computeCommission, setCors, notifySeller, sendPush, pushToUsers, payAmbassadorCommission, finalizeOrderPaid, COMMISSION_RATE, AMBASSADOR_SHARE, vapidStatus };

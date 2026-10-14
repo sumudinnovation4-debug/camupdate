@@ -101,5 +101,10 @@
       "source": "/install",
       "destination": "/download.html"
     }
-  ]
+  ],
+  "functions": {
+    "api/push-event.js": {
+      "maxDuration": 60
+    }
+  }
 }

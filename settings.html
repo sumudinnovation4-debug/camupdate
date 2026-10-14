@@ -824,12 +824,45 @@ img { max-width: 100%; display: block; }
       </div>
       <div class="settings-row" style="flex-direction:column;align-items:stretch;gap:10px">
         <div class="settings-row-text"><b>Notifications not arriving?</b><span>Sends a test and tells you exactly what is wrong</span></div>
-        <button type="button" id="pushTestBtn" style="background:var(--brand,#a78bfa);color:#fff;border:0;border-radius:12px;padding:12px;font:inherit;font-weight:800;cursor:pointer">Send test notification</button>
+        <button type="button" id="permsBtn" style="background:rgba(255,255,255,.08);color:inherit;border:0;border-radius:12px;padding:12px;font:inherit;font-weight:800;cursor:pointer">Review app permissions (mic, camera, location…)</button>
+                <button type="button" id="pushTestBtn" style="background:var(--brand,#a78bfa);color:#fff;border:0;border-radius:12px;padding:12px;font:inherit;font-weight:800;cursor:pointer">Send test notification</button>
         <div id="pushTestOut" style="display:none;font-size:13px;line-height:1.45"></div>
+      </div>
+      <div class="settings-row" style="flex-direction:column;align-items:stretch;gap:8px">
+        <details>
+          <summary style="font-weight:800;cursor:pointer">Alerts arriving late? Fix your phone’s battery saver</summary>
+          <div style="font-size:13px;line-height:1.55;color:var(--text3);margin-top:8px">
+            Most late or missing alerts on Android are caused by the phone’s battery saver putting Camplugie to sleep. Do all of these:
+            <ol style="padding-left:18px;margin:8px 0">
+              <li>Phone <b>Settings → Apps → Camplugie → Battery</b> → choose <b>Unrestricted</b> (or “Don’t optimise”).</li>
+              <li>Do the same for <b>Chrome</b> (Settings → Apps → Chrome → Battery → Unrestricted).</li>
+              <li>On Tecno / Infinix / itel / Xiaomi / Oppo / Vivo / Samsung: also switch on <b>Autostart</b> / <b>Allow background activity</b> for Camplugie and Chrome, and lock the app in the recent-apps screen.</li>
+              <li><b>Settings → Apps → Camplugie → Notifications</b>: make sure every category is on, with sound.</li>
+              <li>Turn off <b>Data saver</b> / <b>Battery saver</b> while testing.</li>
+            </ol>
+            Then tap “Send test notification” — it shows how long the alert took and who was slow.
+          </div>
+        </details>
       </div>
       <div class="settings-row">
         <div class="settings-row-text"><b>New messages</b><span>Chat activity from buyers &amp; sellers</span></div>
         <label class="switch"><input type="checkbox" id="toggle-notify_messages" checked><span class="switch-track"></span></label>
+      </div>
+      <div class="settings-row">
+        <div class="settings-row-text"><b>Calls &amp; lectures</b><span>Ring me when someone calls or a lecture starts</span></div>
+        <label class="switch"><input type="checkbox" id="toggle-notify_calls" checked><span class="switch-track"></span></label>
+      </div>
+      <div class="settings-row">
+        <div class="settings-row-text"><b>Group chats</b><span>New messages, @mentions and being added to groups</span></div>
+        <label class="switch"><input type="checkbox" id="toggle-notify_groups" checked><span class="switch-track"></span></label>
+      </div>
+      <div class="settings-row">
+        <div class="settings-row-text"><b>New listings</b><span>Fresh items posted on your campus</span></div>
+        <label class="switch"><input type="checkbox" id="toggle-notify_listings" checked><span class="switch-track"></span></label>
+      </div>
+      <div class="settings-row">
+        <div class="settings-row-text"><b>New posts</b><span>New posts on The Yard</span></div>
+        <label class="switch"><input type="checkbox" id="toggle-notify_posts" checked><span class="switch-track"></span></label>
       </div>
       <div class="settings-row">
         <div class="settings-row-text"><b>Order updates</b><span>Sold, purchased &amp; status changes</span></div>
@@ -977,7 +1010,7 @@ window.CP_signOut = async () => {
 // Toggle keys map straight to boolean columns on `profiles`.
 // If a column doesn't exist yet in your schema, add it — the update just no-ops safely otherwise.
 const TOGGLE_KEYS = [
-  'push_enabled', 'notify_messages', 'notify_orders', 'notify_yard',
+  'push_enabled', 'notify_messages', 'notify_calls', 'notify_groups', 'notify_listings', 'notify_posts', 'notify_orders', 'notify_yard',
   'show_online', 'is_searchable', 'allow_plug_requests',
 ];
 
@@ -1019,6 +1052,7 @@ TOGGLE_KEYS.forEach(key => {
 });
 
 
+document.getElementById('permsBtn').addEventListener('click', () => window.CamplugiePWA?.permissions?.open());
 document.getElementById('pushTestBtn').addEventListener('click', async (e) => {
   const btn = e.currentTarget, out = document.getElementById('pushTestOut');
   btn.disabled = true; btn.textContent = 'Checking…'; out.style.display = 'block'; out.textContent = '';

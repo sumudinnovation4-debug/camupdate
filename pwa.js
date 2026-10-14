@@ -406,6 +406,19 @@
         else if (j.steps) j.steps.forEach(function (st) { lines.push(st); });
         else add(false, 'Server', j.error || ('The server answered ' + r.status + '. Check the Vercel logs for /api/push-test.'));
       } catch (e) { add(false, 'Server', 'Could not reach the server: ' + e.message); }
+
+      // How long did the most recent alerts actually take? (recorded by the service worker)
+      try {
+        var cache = await caches.open('cp-push-log');
+        var m = await cache.match('/__pushlog');
+        var list = m ? await m.json() : [];
+        if (list.length) {
+          var secs = function (ms) { return ms == null ? '?' : (ms < 1000 ? '<1' : Math.round(ms / 1000)) + 's'; };
+          var l = list[0], slow = list.some(function (x) { return x.phoneMs > 30000; });
+          add(!slow, 'Delivery speed', 'Last alert (“' + l.title + '”): our server took ' + secs(l.serverMs) + ', then the push service + your phone took ' + secs(l.phoneMs) + '.' +
+            (slow ? ' Your phone is holding alerts back — open “Alerts arriving late?” below and set Camplugie + Chrome to Unrestricted battery.' : ''));
+        }
+      } catch (e) { /* no log yet */ }
       return lines;
     })();
   }
@@ -463,6 +476,120 @@
     Bar.start();
   }, true);
 
+  /* =====================================================================
+   *  APP PERMISSIONS — one friendly screen that asks for everything the app uses
+   *  (notifications, microphone, camera, location), once, with a tap per prompt.
+   *  Browsers/Android only show a permission prompt after a tap, so this can't be
+   *  done silently. "Photos & files" needs no permission: the phone's own picker
+   *  only ever shares the files the person chooses.
+   * ===================================================================== */
+  var PERMS = [
+    { id: 'notifications', icon: '🔔', title: 'Notifications', why: 'Messages, calls, lectures, new listings and posts — even when the app is closed.' },
+    { id: 'microphone',    icon: '🎤', title: 'Microphone',    why: 'Voice and video calls, lectures and voice notes.' },
+    { id: 'camera',        icon: '📷', title: 'Camera',        why: 'Video calls, lectures, and photos for your listings and posts.' },
+    { id: 'geolocation',   icon: '📍', title: 'Location',      why: 'Drop pickup and delivery pins and find Swift runners near you.' },
+    { id: 'files',         icon: '🗂️', title: 'Photos & files', why: 'Always on — Camplugie only opens the photos and files you pick yourself.', always: true },
+  ];
+  var permsEl = null;
+
+  function permState(id) {
+    if (id === 'files') return Promise.resolve('always');
+    if (id === 'notifications') {
+      if (!('Notification' in window)) return Promise.resolve('unsupported');
+      return Promise.resolve({ granted: 'granted', denied: 'denied', 'default': 'prompt' }[Notification.permission]);
+    }
+    if (!navigator.permissions || !navigator.permissions.query) return Promise.resolve('prompt');
+    return navigator.permissions.query({ name: id }).then(function (r) { return r.state; }, function () { return 'prompt'; });
+  }
+
+  function askMedia(kind) {            // 'microphone' | 'camera' — one prompt covers whichever is still missing
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return Promise.resolve(false);
+    var want = kind === 'camera' ? { video: true } : { audio: true };
+    return navigator.mediaDevices.getUserMedia(want).then(function (st) { st.getTracks().forEach(function (t) { t.stop(); }); return true; }, function () { return false; });
+  }
+  function askLocation() {
+    return new Promise(function (resolve) {
+      if (!navigator.geolocation) return resolve(false);
+      navigator.geolocation.getCurrentPosition(function () { resolve(true); }, function () { resolve(false); }, { timeout: 12000, maximumAge: 600000 });
+    });
+  }
+  function askPerm(id, user) {
+    if (id === 'notifications') return subscribePush(user.id, true);
+    if (id === 'microphone' || id === 'camera') return askMedia(id);
+    if (id === 'geolocation') return askLocation();
+    return Promise.resolve(true);
+  }
+
+  addStyle('cp-perms-css', [
+    '#cp-perms-bd{position:fixed;inset:0;z-index:2147483300;background:rgba(5,3,14,.66);opacity:0;transition:opacity .25s}',
+    '#cp-perms-bd.on{opacity:1}',
+    '#cp-perms{position:fixed;left:0;right:0;bottom:0;z-index:2147483301;max-width:520px;margin:0 auto;max-height:92vh;overflow-y:auto;',
+    'background:#14102B;color:#F8F6FF;border:1px solid rgba(255,255,255,.1);border-bottom:0;border-radius:24px 24px 0 0;',
+    'padding:18px 18px calc(18px + env(safe-area-inset-bottom,0px));font-family:system-ui,-apple-system,sans-serif;',
+    'transform:translateY(100%);transition:transform .32s cubic-bezier(.2,.8,.2,1);box-shadow:0 -20px 50px rgba(0,0,0,.5)}',
+    '#cp-perms.on{transform:none}',
+    '#cp-perms h3{margin:2px 0 4px;font-size:19px}#cp-perms .sub{margin:0 0 14px;color:#C9C3DE;font-size:13px;line-height:1.45}',
+    '#cp-perms .row{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid rgba(255,255,255,.07)}',
+    '#cp-perms .ic{width:40px;height:40px;border-radius:12px;background:rgba(124,58,237,.18);display:flex;align-items:center;justify-content:center;font-size:20px;flex:none}',
+    '#cp-perms .tx{flex:1;min-width:0}#cp-perms .tx b{display:block;font-size:14.5px}#cp-perms .tx span{display:block;font-size:12px;color:#A59FC2;line-height:1.35;margin-top:2px}',
+    '#cp-perms .st{flex:none;font-size:11.5px;font-weight:800;padding:5px 10px;border-radius:999px;background:rgba(255,255,255,.08);color:#C9C3DE}',
+    '#cp-perms .st.ok{background:rgba(52,211,153,.16);color:#34D399}#cp-perms .st.no{background:rgba(251,113,133,.16);color:#FB7185}',
+    '#cp-perms .hint{font-size:11.5px;color:#FB7185;margin:4px 0 0}',
+    '#cp-perms .btns{display:flex;gap:10px;margin-top:14px}',
+    '#cp-perms .btns button{flex:1;border:0;border-radius:14px;padding:13px;font:800 14px system-ui,sans-serif;cursor:pointer}',
+    '#cp-perms .all{background:linear-gradient(135deg,#7C3AED,#4F8DF7);color:#fff}#cp-perms .later{background:rgba(255,255,255,.08);color:#C9C3DE;flex:.55!important}'
+  ].join(''));
+
+  function closePermSheet() {
+    if (!permsEl) return;
+    var el = permsEl, bd = doc.getElementById('cp-perms-bd');
+    permsEl = null; store('cp_perms_v1', String(Date.now()));
+    el.classList.remove('on'); if (bd) bd.classList.remove('on');
+    setTimeout(function () { el.remove(); if (bd) bd.remove(); }, 380);
+  }
+  function paintPermSheet(user) {
+    if (!permsEl) return Promise.resolve();
+    return Promise.all(PERMS.map(function (p) { return permState(p.id); })).then(function (states) {
+      var rows = PERMS.map(function (p, i) {
+        var st = states[i], cls = (st === 'granted' || st === 'always') ? 'ok' : st === 'denied' ? 'no' : '';
+        var label = st === 'always' ? 'Always on' : st === 'granted' ? 'Allowed ✓' : st === 'denied' ? 'Blocked' : st === 'unsupported' ? 'Not available' : 'Not yet';
+        return '<div class="row"><div class="ic">' + p.icon + '</div><div class="tx"><b>' + p.title + '</b><span>' + p.why + '</span>' +
+          (st === 'denied' ? '<div class="hint">Blocked — open your phone Settings → Apps → Camplugie → Permissions to allow it.</div>' : '') +
+          '</div><div class="st ' + cls + '">' + label + '</div></div>';
+      }).join('');
+      var pending = states.some(function (st) { return st === 'prompt'; });
+      permsEl.innerHTML = '<h3>Set up Camplugie</h3><p class="sub">Allow these once so calls, lectures and alerts work like WhatsApp — even when the app is closed.</p>' + rows +
+        '<div class="btns">' + (pending ? '<button class="later" id="cpPermLater">Not now</button><button class="all" id="cpPermAll">Allow all</button>' : '<button class="all" id="cpPermDone">Done</button>') + '</div>';
+      var all = permsEl.querySelector('#cpPermAll'), later = permsEl.querySelector('#cpPermLater'), done = permsEl.querySelector('#cpPermDone');
+      if (later) later.onclick = closePermSheet;
+      if (done) done.onclick = closePermSheet;
+      if (all) all.onclick = function () {
+        all.disabled = true; all.textContent = 'Asking…';
+        var chain = Promise.resolve();
+        PERMS.forEach(function (p, i) {
+          chain = chain.then(function () { return permState(p.id); }).then(function (st) { return st === 'prompt' ? askPerm(p.id, user) : null; }).then(function () { return paintPermSheet(user); });
+        });
+        chain.then(function () { try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch (e) {} });
+      };
+    });
+  }
+  function openPermSheet(user) {
+    user = user || window.CP_USER; if (!user || permsEl) return;
+    var bd = doc.createElement('div'); bd.id = 'cp-perms-bd'; bd.onclick = closePermSheet;
+    permsEl = doc.createElement('div'); permsEl.id = 'cp-perms'; permsEl.setAttribute('role', 'dialog');
+    (doc.body || root).appendChild(bd); (doc.body || root).appendChild(permsEl);
+    paintPermSheet(user).then(function () { requestAnimationFrame(function () { requestAnimationFrame(function () { bd.classList.add('on'); permsEl && permsEl.classList.add('on'); }); }); });
+  }
+  // Shows once, automatically, the first time someone signs in on this phone.
+  function maybeShowPermSheet(user) {
+    if (store('cp_perms_v1') || has(NO_PUSH_PROMPT) || inAppBrowser()) return;
+    if (isIOS() && !isStandalone()) return;                  // iPhone only allows push once installed to the Home Screen
+    Promise.all(PERMS.map(function (p) { return permState(p.id); })).then(function (states) {
+      if (!states.some(function (st) { return st === 'prompt'; })) { store('cp_perms_v1', String(Date.now())); return; }
+      setTimeout(function () { openPermSheet(user); }, isStandalone() ? 3000 : 8000);
+    });
+  }
+
   // Fires on every protected page (each one dispatches 'cp-ready' after
   // loading the session + profile). Keeps this device's subscription alive
   // silently when permission was already granted, and otherwise offers a
@@ -502,8 +629,10 @@
 
   doc.addEventListener('cp-ready', function (e) {
     var profile = e.detail && e.detail.profile, user = e.detail && e.detail.user;
-    if (!user || !pushSupported()) return;
+    if (!user) return;
     window.CP_USER = window.CP_USER || user;
+    maybeShowPermSheet(user);                                           // one friendly "allow everything" screen, once
+    if (!pushSupported()) return;
     var enabled = !profile || profile.push_enabled !== false;      // null/undefined = on by default
     if (!enabled) return;
 
@@ -515,6 +644,7 @@
     if (Notification.permission !== 'default') return;               // denied: respect it
     if (has(NO_PUSH_PROMPT) || inAppBrowser()) return;
     if (isIOS() && !isStandalone()) return;                           // iPhone only allows push once installed to the Home Screen
+    if (!store('cp_perms_v1')) return;                                // the setup screen above asks for notifications first
     if (Date.now() < (+store('cp_push_snooze') || 0)) return;
     setTimeout(function () { showPushBanner(user); }, isStandalone() ? 4000 : 12000);
   });
@@ -546,6 +676,7 @@
       diagnose: diagnosePush,
       publicKey: VAPID_PUBLIC_KEY,
       unsubscribe: unsubscribePush
-    }
+    },
+    permissions: { open: function () { openPermSheet(window.CP_USER); } }
   };
 })();

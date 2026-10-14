@@ -6,7 +6,7 @@
      - offline navigation: fall back to the cached page, then offline.html
 */
 
-const VERSION = 'camplugie-v5';
+const VERSION = 'camplugie-v6';
 const SHELL = [
   '/', '/home.html', '/market.html', '/notifications.html', '/yard.html',
   '/profile.html', '/create.html', '/chat-thread.html', '/group-thread.html',
@@ -36,7 +36,7 @@ self.addEventListener('install', (e) => {
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== VERSION).map(k => caches.delete(k))))
+      .then(keys => Promise.all(keys.filter(k => k !== VERSION && k !== 'cp-push-log').map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
@@ -104,6 +104,19 @@ async function openApp(target) {
   return self.clients.openWindow(abs);
 }
 
+// Keeps the last few deliveries so Settings → "Send test notification" can show where a
+// delay comes from: 'server' = our database/Vercel side, 'phone' = Google's push service +
+// your phone's battery saver. (Stored in the Cache API so the page can read it.)
+async function logPush(entry) {
+  try {
+    const cache = await caches.open('cp-push-log');
+    const old = await cache.match('/__pushlog');
+    const list = old ? await old.json() : [];
+    list.unshift(entry);
+    await cache.put('/__pushlog', new Response(JSON.stringify(list.slice(0, 8)), { headers: { 'Content-Type': 'application/json' } }));
+  } catch (_) {}
+}
+
 self.addEventListener('push', (event) => {
   let payload = {};
   try { payload = event.data ? event.data.json() : {}; }
@@ -111,20 +124,32 @@ self.addEventListener('push', (event) => {
 
   const url = payload.url || '/notifications.html';
   const title = payload.title || 'Camplugie';
+  const isCall = payload.type === 'call' || payload.type === 'group_call';
+  const receivedAt = Date.now();
 
   event.waitUntil((async () => {
-    // If the person is already looking at this exact chat/order, don't buzz
-    // them — the live UI already shows it (same behaviour as WhatsApp).
     const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    const visible = wins.filter((c) => c.visibilityState === 'visible');
+    wins.forEach((c) => c.postMessage({ type: 'cp-push', payload }));
+
+    // Delivery timing for the "Send test notification" report.
+    logPush({
+      at: receivedAt, type: payload.type || 'general', title: String(title).slice(0, 40),
+      serverMs: payload.ev && payload.ts ? Math.max(0, payload.ts - payload.ev) : null,   // event saved → push sent
+      phoneMs: payload.ts ? Math.max(0, receivedAt - payload.ts) : null,                   // push sent → phone received
+    });
+
+    // The app is open and showing something already:
+    //  • a call → the in-app ring screen handles it, so no second alert
+    //  • anything else → stay quiet only if they're looking at that exact chat/group/order
+    if (isCall && visible.length) return;
     const here = new URL(url, self.location.origin);
-    const viewing = wins.some((c) => {
-      if (c.visibilityState !== 'visible') return false;
+    const viewing = visible.some((c) => {
       const u = new URL(c.url);
       if (u.pathname !== here.pathname) return false;
-      const id = here.searchParams.get('id');                // same chat / group / order, ignoring other query params
+      const id = here.searchParams.get('id');
       return id ? u.searchParams.get('id') === id : u.search === here.search;
     });
-    wins.forEach((c) => c.postMessage({ type: 'cp-push', payload }));
     if (viewing) return;
 
     await self.registration.showNotification(title, {
@@ -133,21 +158,22 @@ self.addEventListener('push', (event) => {
       badge: '/icons/monochrome-512.png',          // small white status-bar glyph on Android
       tag: payload.tag || 'camplugie',               // same tag = replaces, so a chat never stacks 20 alerts
       renotify: true,
-      timestamp: payload.ts || Date.now(),
-      data: { url },
-      vibrate: [180, 90, 180],
-      requireInteraction: payload.type === 'call',
+      timestamp: payload.ev || payload.ts || Date.now(),
+      data: { url, type: payload.type },
+      actions: (payload.actions || []).slice(0, 2),
+      vibrate: isCall ? [500, 250, 500, 250, 500, 250, 500, 250, 500] : [180, 90, 180],
+      requireInteraction: !!payload.requireInteraction,   // calls stay on screen until answered / declined
     });
   })());
 });
 
 self.addEventListener('notificationclick', (event) => {
+  const action = event.action;
   event.notification.close();
+  if (action === 'decline') return;                       // "Decline" on a call just dismisses it
   event.waitUntil(openApp(event.notification.data && event.notification.data.url));
 });
 
-// The browser rotated this device's push subscription (happens now and then).
-// Re-subscribe and tell any open page to save the new endpoint.
 self.addEventListener('pushsubscriptionchange', (event) => {
   event.waitUntil((async () => {
     const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });

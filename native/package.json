@@ -1,0 +1,15 @@
+{
+  "name": "camplugie-native",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Camplugie Android app (Capacitor wrapper around camplugie.com with native Firebase push). Built in the cloud by .github/workflows/android.yml — nothing to run on your phone.",
+  "dependencies": {
+    "@capacitor/android": "8.5.3",
+    "@capacitor/app": "8.1.2",
+    "@capacitor/browser": "8.0.5",
+    "@capacitor/cli": "8.5.3",
+    "@capacitor/core": "8.5.3",
+    "@capacitor/push-notifications": "8.1.3",
+    "sharp": "0.35.5"
+  }
+}

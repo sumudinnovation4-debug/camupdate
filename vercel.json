@@ -100,10 +100,38 @@
     {
       "source": "/install",
       "destination": "/download.html"
+    },
+    {
+      "source": "/api/push-event",
+      "destination": "/api/hub?r=push-event"
+    },
+    {
+      "source": "/api/push-test",
+      "destination": "/api/hub?r=push-test"
+    },
+    {
+      "source": "/api/notify-call",
+      "destination": "/api/hub?r=notify-call"
+    },
+    {
+      "source": "/api/notify-message",
+      "destination": "/api/hub?r=notify-message"
+    },
+    {
+      "source": "/api/notify-group-message",
+      "destination": "/api/hub?r=notify-group-message"
+    },
+    {
+      "source": "/api/send-push",
+      "destination": "/api/hub?r=send-push"
+    },
+    {
+      "source": "/api/delete-account",
+      "destination": "/api/hub?r=delete-account"
     }
   ],
   "functions": {
-    "api/push-event.js": {
+    "api/hub.js": {
       "maxDuration": 60
     }
   }

@@ -12,7 +12,7 @@
 //   Headers: x-webhook-secret: <same value as PUSH_WEBHOOK_SECRET env var>
 // (See PLAY_STORE_CHECKLIST.md / the notifications section for the full
 // walkthrough.)
-const { supabaseAdmin, sendPush } = require('./_lib');
+const { supabaseAdmin, sendPush } = require('../_lib');
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -33,6 +33,10 @@ module.exports = async (req, res) => {
     // a cleaner `data.push_body`; otherwise strip the link footer.
     const cleanBody = row.data?.push_body
       || String(row.body || '').split('\n\n')[0].replace(/\s*https?:\/\/\S+/g, '').trim();
+
+    // 1:1 chat pushes are sent by the messages trigger (/api/push-event) the instant a
+    // message is saved. This row only feeds the in-app list + email, so don't buzz twice.
+    if (row.type === 'message') return res.status(200).json({ ok: true, skipped: 'handled-by-messages-trigger' });
 
     const result = await sendPush(sb, row.user_id, {
       title: row.title || 'Camplugie',

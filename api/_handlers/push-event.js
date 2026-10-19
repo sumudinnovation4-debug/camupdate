@@ -4,7 +4,7 @@
 //
 // Because the DATABASE triggers this — not the sender's phone — it works even if the
 // sender closes the app the moment they hit send, exactly like WhatsApp.
-const { supabaseAdmin, pushToUsers } = require('./_lib');
+const { supabaseAdmin, pushToUsers } = require('../_lib');
 
 const SYSTEM_PREFIX = '\u{1F512}SYSTEM:';
 const MAX_BROADCAST = 1500;   // most people one new listing / post is pushed to

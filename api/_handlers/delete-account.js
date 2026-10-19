@@ -11,7 +11,7 @@
 //      account is anonymised and locked instead, so nobody can sign in to it again.
 // Kept on purpose (legal / accounting / dispute records): completed order, receipt and
 // wallet-transaction history, with the person's name already removed.
-const { supabaseAdmin, setCors, requireUser } = require('./_lib');
+const { supabaseAdmin, setCors, requireUser } = require('../_lib');
 
 const naira = (kobo) => '₦' + (kobo / 100).toLocaleString('en-NG');
 

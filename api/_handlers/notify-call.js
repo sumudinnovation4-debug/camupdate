@@ -1,7 +1,7 @@
 // POST { peer_id, video, call_channel }   Authorization: Bearer <caller's access token>
 // call.html calls this the moment it starts ringing someone, so their phone rings even
 // if Camplugie is closed (the in-app ring only works while the app is open).
-const { supabaseAdmin, setCors, pushToUsers } = require('./_lib');
+const { supabaseAdmin, setCors, pushToUsers } = require('../_lib');
 
 module.exports = async (req, res) => {
   setCors(res);

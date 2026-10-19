@@ -2,7 +2,7 @@
 // Settings → Notifications → "Send test notification" calls this.
 // It walks the whole push chain for THIS user, reports which link is broken in
 // plain English, and finally sends a real test push to every device they have.
-const { supabaseAdmin, setCors, sendPush, vapidStatus, fcmStatus } = require('./_lib');
+const { supabaseAdmin, setCors, sendPush, vapidStatus, fcmStatus } = require('../_lib');
 
 module.exports = async (req, res) => {
   setCors(res);

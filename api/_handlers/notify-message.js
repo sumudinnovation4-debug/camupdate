@@ -7,7 +7,7 @@
 // strangers), figures out who the *other* person in the conversation is,
 // and fires their in-app notification + email using notifySeller() from
 // _lib.js — that helper works for any user id, not just sellers.
-const { supabaseAdmin, setCors, notifySeller } = require('./_lib');
+const { supabaseAdmin, setCors, notifySeller } = require('../_lib');
 
 module.exports = async (req, res) => {
   setCors(res);

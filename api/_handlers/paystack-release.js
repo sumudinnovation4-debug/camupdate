@@ -9,7 +9,7 @@
 //   1. Buyer taps "Confirm received" on a normal item escrow.
 //   2. A Swift runner enters the buyer's delivery PIN (auto-release, no buyer tap needed).
 //   3. A food vendor marks an order "delivered" (or buyer confirms, your choice in the UI).
-const { computeCommission, supabaseAdmin, payAmbassadorCommission, setCors } = require('../_lib');
+const { computeCommission, supabaseAdmin, payAmbassadorCommission, setCors , requireUser, canActOnOrder } = require('../_lib');
 
 module.exports = async (req, res) => {
   setCors(res);
@@ -20,12 +20,14 @@ module.exports = async (req, res) => {
     const { order_type, order_id } = req.body;
     if (!order_type || !order_id) return res.status(400).json({ error: 'Missing fields' });
     const sb = supabaseAdmin();
+    const caller = await requireUser(req, res, sb); if (!caller) return;
     const table = order_type === 'escrow' ? 'escrow_orders' : 'food_orders';
     const paidStatus = order_type === 'escrow' ? 'paid_escrow' : 'paid';
 
     const { data: order, error } = await sb.from(table).select('*').eq('id', order_id).single();
     if (error) return res.status(500).json({ error: `Database error looking up order: ${error.message}` });
     if (!order) return res.status(404).json({ error: `Order not found (id ${order_id}) — this usually means the API function's SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY point to a different Supabase project than the one the app writes to.` });
+    if (!(await canActOnOrder(sb, order, caller.id))) return res.status(403).json({ error: 'This order is not yours.' });
     if (order.status === 'released') return res.status(200).json({ ok: true, already: true });
     if (order.status !== paidStatus) {
       return res.status(400).json({ error: `Order is "${order.status}", not ready for release` });

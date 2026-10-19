@@ -2,7 +2,7 @@
 // Withdraws from the internal wallet to the user's real bank account.
 // This is where P2P money finally leaves the platform, so the 5% commission
 // is taken HERE (not when it was originally sent P2P).
-const { paystack, supabaseAdmin, computeCommission, setCors } = require('../_lib');
+const { paystack, supabaseAdmin, computeCommission, setCors, requireUser } = require('../_lib');
 
 module.exports = async (req, res) => {
   setCors(res);
@@ -14,6 +14,8 @@ module.exports = async (req, res) => {
     if (!user_id || !amount_kobo || amount_kobo <= 0) return res.status(400).json({ error: 'Missing or invalid fields' });
 
     const sb = supabaseAdmin();
+    const caller = await requireUser(req, res, sb); if (!caller) return;
+    if (caller.id !== user_id) return res.status(403).json({ error: 'You can only withdraw from your own wallet.' });
     const { data: wallet } = await sb.from('wallets').select('*').eq('user_id', user_id).single();
     const balance = wallet?.balance_kobo || 0;
     if (balance < amount_kobo) return res.status(400).json({ error: 'Insufficient wallet balance' });

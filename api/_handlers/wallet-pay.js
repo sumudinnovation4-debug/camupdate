@@ -4,7 +4,7 @@
 // Mirrors exactly what paystack-verify.js does once a card payment succeeds
 // (mark paid, notify seller, decrement stock) — the only difference is
 // where the money comes from.
-const { supabaseAdmin, finalizeOrderPaid, setCors } = require('../_lib');
+const { supabaseAdmin, finalizeOrderPaid, setCors, requireUser } = require('../_lib');
 
 module.exports = async (req, res) => {
   setCors(res);
@@ -17,6 +17,8 @@ module.exports = async (req, res) => {
     if (!['escrow', 'food'].includes(order_type)) return res.status(400).json({ error: 'Invalid order_type' });
 
     const sb = supabaseAdmin();
+    const caller = await requireUser(req, res, sb); if (!caller) return;
+    if (caller.id !== user_id) return res.status(403).json({ error: 'You can only pay from your own wallet.' });
     const table = order_type === 'escrow' ? 'escrow_orders' : 'food_orders';
     const paidStatus = order_type === 'escrow' ? 'paid_escrow' : 'paid';
 

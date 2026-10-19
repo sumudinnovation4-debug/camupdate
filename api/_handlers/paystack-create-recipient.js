@@ -1,7 +1,7 @@
 // POST { user_id, account_number, bank_code, bank_name }
 // Creates a Paystack transfer recipient (tokenized bank account) and stores
 // the recipient_code so future payouts to this user are one API call away.
-const { paystack, supabaseAdmin, setCors } = require('../_lib');
+const { paystack, supabaseAdmin, setCors, requireUser } = require('../_lib');
 
 module.exports = async (req, res) => {
   setCors(res);
@@ -17,6 +17,10 @@ module.exports = async (req, res) => {
     if (missing.length) {
       return res.status(400).json({ error: `Missing fields: ${missing.join(', ')}` });
     }
+
+    const sbAuth = supabaseAdmin();
+    const caller = await requireUser(req, res, sbAuth); if (!caller) return;
+    if (caller.id !== user_id) return res.status(403).json({ error: 'You can only set the payout account on your own profile.' });
 
     const resolved = await paystack(`/bank/resolve?account_number=${encodeURIComponent(account_number)}&bank_code=${encodeURIComponent(bank_code)}`);
     const account_name = resolved.data.account_name;

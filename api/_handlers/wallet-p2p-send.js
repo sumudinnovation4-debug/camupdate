@@ -2,7 +2,7 @@
 // Moves money between two internal wallet balances. No Paystack call here —
 // it's just our own ledger. Commission is only taken later, when the
 // receiver withdraws to their bank (see wallet-withdraw.js).
-const { supabaseAdmin, setCors } = require('../_lib');
+const { supabaseAdmin, setCors, requireUser } = require('../_lib');
 
 module.exports = async (req, res) => {
   setCors(res);
@@ -17,6 +17,8 @@ module.exports = async (req, res) => {
     if (sender_id === receiver_id) return res.status(400).json({ error: 'Cannot send to yourself' });
 
     const sb = supabaseAdmin();
+    const caller = await requireUser(req, res, sb); if (!caller) return;
+    if (caller.id !== sender_id) return res.status(403).json({ error: 'You can only send money from your own wallet.' });
     const { data: senderWallet } = await sb.from('wallets').select('*').eq('user_id', sender_id).single();
     const balance = senderWallet?.balance_kobo || 0;
     if (balance < amount_kobo) return res.status(400).json({ error: 'Insufficient wallet balance' });

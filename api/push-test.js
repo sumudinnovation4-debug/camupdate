@@ -2,7 +2,7 @@
 // Settings → Notifications → "Send test notification" calls this.
 // It walks the whole push chain for THIS user, reports which link is broken in
 // plain English, and finally sends a real test push to every device they have.
-const { supabaseAdmin, setCors, sendPush, vapidStatus } = require('./_lib');
+const { supabaseAdmin, setCors, sendPush, vapidStatus, fcmStatus } = require('./_lib');
 
 module.exports = async (req, res) => {
   setCors(res);
@@ -19,22 +19,29 @@ module.exports = async (req, res) => {
     const uid = auth && auth.user && auth.user.id;
     if (!uid) return res.status(401).json({ error: 'Please sign in again.' });
 
-    const { endpoint, appKey } = req.body || {};
+    const { endpoint, appKey, native_token } = req.body || {};
     const v = vapidStatus();
 
-    // 1 — server keys
-    if (!v.public || !v.private) {
-      add(false, 'Server keys', `Vercel is missing ${!v.public ? 'VAPID_PUBLIC_KEY' : ''}${!v.public && !v.private ? ' and ' : ''}${!v.private ? 'VAPID_PRIVATE_KEY' : ''}. Add them in Vercel → Settings → Environment Variables, then Redeploy.`);
-    } else if (v.error) {
-      add(false, 'Server keys', `The keys on Vercel are not valid (${v.error}). Re-copy both from the key pair, with no spaces or quotes, then Redeploy.`);
+    if (native_token) {
+      // ---- Android app: Firebase key on the server ----
+      const f = fcmStatus();
+      if (!f.ready) add(false, 'Firebase on the server', 'Vercel has no valid FIREBASE_SERVICE_ACCOUNT. In Firebase → Project settings → Service accounts → Generate new private key, then paste the WHOLE file content into a Vercel environment variable named FIREBASE_SERVICE_ACCOUNT and Redeploy.');
+      else add(true, 'Firebase on the server', `Connected to Firebase project “${f.project}”.`);
     } else {
-      add(true, 'Server keys', 'Both keys are set on Vercel and valid.');
-    }
+      // 1 — server keys
+      if (!v.public || !v.private) {
+        add(false, 'Server keys', `Vercel is missing ${!v.public ? 'VAPID_PUBLIC_KEY' : ''}${!v.public && !v.private ? ' and ' : ''}${!v.private ? 'VAPID_PRIVATE_KEY' : ''}. Add them in Vercel → Settings → Environment Variables, then Redeploy.`);
+      } else if (v.error) {
+        add(false, 'Server keys', `The keys on Vercel are not valid (${v.error}). Re-copy both from the key pair, with no spaces or quotes, then Redeploy.`);
+      } else {
+        add(true, 'Server keys', 'Both keys are set on Vercel and valid.');
+      }
 
-    // 2 — public key on the server == public key inside the app
-    if (appKey && v.publicKey) {
-      if (String(appKey).trim() === v.publicKey) add(true, 'Keys match', 'The app and the server use the same public key.');
-      else add(false, 'Keys match', 'The public key in pwa.js is DIFFERENT from VAPID_PUBLIC_KEY on Vercel. Make both the same, redeploy, then switch notifications off and on again.');
+      // 2 — public key on the server == public key inside the app
+      if (appKey && v.publicKey) {
+        if (String(appKey).trim() === v.publicKey) add(true, 'Keys match', 'The app and the server use the same public key.');
+        else add(false, 'Keys match', 'The public key in pwa.js is DIFFERENT from VAPID_PUBLIC_KEY on Vercel. Make both the same, redeploy, then switch notifications off and on again.');
+      }
     }
 
     // 3 — settings switch
@@ -43,15 +50,22 @@ module.exports = async (req, res) => {
     else add(true, 'Settings switch', 'Push notifications are switched on.');
 
     // 4 — saved devices
-    const { data: subs, error: subErr } = await sb.from('push_subscriptions').select('endpoint').eq('user_id', uid);
-    if (subErr) {
-      add(false, 'Saved devices', 'The push_subscriptions table is missing or unreadable. Run camplugie-push.sql again in Supabase → SQL Editor.');
-    } else if (!subs.length) {
-      add(false, 'Saved devices', 'No device is saved for your account yet. Open Settings, switch Push notifications off and on, and tap Allow.');
-    } else if (endpoint && !subs.some(r => r.endpoint === endpoint)) {
-      add(false, 'This device', `You have ${subs.length} saved device(s) but NOT this phone. Switch Push notifications off and on in Settings to save this one.`);
+    if (native_token) {
+      const { data: toks, error: tokErr } = await sb.from('device_tokens').select('token').eq('user_id', uid);
+      if (tokErr) add(false, 'Saved devices', 'The device_tokens table is missing. Run camplugie-native.sql in Supabase → SQL Editor.');
+      else if (!toks.some(t => t.token === native_token)) add(false, 'This device', 'This phone’s Firebase token is not saved to your account. Switch Push notifications off and on in Settings.');
+      else add(true, 'Saved devices', 'This phone is saved for push.');
     } else {
-      add(true, 'Saved devices', endpoint ? 'This phone is saved.' : `${subs.length} device(s) saved.`);
+      const { data: subs, error: subErr } = await sb.from('push_subscriptions').select('endpoint').eq('user_id', uid);
+      if (subErr) {
+        add(false, 'Saved devices', 'The push_subscriptions table is missing or unreadable. Run camplugie-push.sql again in Supabase → SQL Editor.');
+      } else if (!subs.length) {
+        add(false, 'Saved devices', 'No device is saved for your account yet. Open Settings, switch Push notifications off and on, and tap Allow.');
+      } else if (endpoint && !subs.some(r => r.endpoint === endpoint)) {
+        add(false, 'This device', `You have ${subs.length} saved device(s) but NOT this phone. Switch Push notifications off and on in Settings to save this one.`);
+      } else {
+        add(true, 'Saved devices', endpoint ? 'This phone is saved.' : `${subs.length} device(s) saved.`);
+      }
     }
 
     // 5 — actually send

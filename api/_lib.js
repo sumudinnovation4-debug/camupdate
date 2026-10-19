@@ -22,6 +22,9 @@ if (vapid.publicKey && vapid.privateKey) {
     vapid.ready = true;
   } catch (err) { vapid.error = err.message; console.error('VAPID setup failed:', err.message); }
 }
+let fcm = null;
+try { fcm = require('./_fcm'); } catch (e) { console.error('FCM module unavailable:', e.message); }
+function fcmStatus() { return fcm ? fcm.status() : { ready: false, project: null }; }
 function vapidStatus() {
   return { public: !!vapid.publicKey, private: !!vapid.privateKey, ready: vapid.ready, error: vapid.error, publicKey: vapid.publicKey };
 }
@@ -116,16 +119,17 @@ const PUSH_PREF_BY_TYPE = {
 // msg: { title, body, url, type, tag, icon, eventAt, ttl, urgency, requireInteraction, actions, data }
 // Returns { targets, users, sent, failed, skipped, errors }.
 async function pushToUsers(sb, userIds, msg, opts = {}) {
-  const out = { targets: 0, users: 0, sent: 0, failed: 0, skipped: null, errors: [] };
-  if (!vapid.ready) { out.skipped = vapid.error ? 'vapid-invalid' : 'vapid-not-configured'; return out; }
+  const out = { targets: 0, users: 0, sent: 0, failed: 0, native: 0, skipped: null, errors: [] };
+  const webOk = vapid.ready, fcmOk = !!(fcm && fcm.ready());
+  if (!webOk && !fcmOk) { out.skipped = vapid.error ? 'vapid-invalid' : 'vapid-not-configured'; return out; }
   const ids = [...new Set((userIds || []).filter(Boolean))];
   out.targets = ids.length;
   if (!ids.length) { out.skipped = 'no-recipients'; return out; }
 
   const prefKey = PUSH_PREF_BY_TYPE[msg.type];
   const concurrency = opts.concurrency || 40;
-  const dead = [];
-  const jobs = [];
+  const deadWeb = [], deadTokens = [];
+  const webJobs = [], nativeJobs = [];
   const payload = JSON.stringify({
     title: msg.title || 'Camplugie',
     body: String(msg.body || '').slice(0, 180),
@@ -140,45 +144,68 @@ async function pushToUsers(sb, userIds, msg, opts = {}) {
   try {
     for (let i = 0; i < ids.length; i += 150) {
       const chunk = ids.slice(i, i + 150);
-      const [{ data: profs }, { data: subs }] = await Promise.all([
+      const [{ data: profs }, { data: subs }, tokRes] = await Promise.all([
         sb.from('profiles').select('*').in('id', chunk),
-        sb.from('push_subscriptions').select('*').in('user_id', chunk),
+        webOk ? sb.from('push_subscriptions').select('*').in('user_id', chunk) : Promise.resolve({ data: [] }),
+        fcmOk ? sb.from('device_tokens').select('*').in('user_id', chunk) : Promise.resolve({ data: [] }),
       ]);
+      const toks = (tokRes && !tokRes.error && tokRes.data) || [];     // table not created yet → just no phones
       const allowed = new Set((profs || [])
         .filter(p => p.push_enabled !== false && (!prefKey || p[prefKey] !== false))
         .map(p => p.id));
+      const hasApp = new Set(toks.map(t => t.user_id));
       const seenUsers = new Set();
+      for (const t of toks) { if (allowed.has(t.user_id)) { seenUsers.add(t.user_id); nativeJobs.push(t); } }
       for (const sub of (subs || [])) {
         if (!allowed.has(sub.user_id)) continue;
+        // Someone with the Android app gets their phone alerts from the app. Skip their OLD
+        // phone-browser/web-app subscription, or every alert would arrive twice. Desktop
+        // browsers (no "Android" in the user agent) keep working.
+        if (hasApp.has(sub.user_id) && (!sub.user_agent || /android/i.test(sub.user_agent))) continue;
         seenUsers.add(sub.user_id);
-        jobs.push(sub);
+        webJobs.push(sub);
       }
       out.users += seenUsers.size;
     }
-    if (!jobs.length) { out.skipped = 'no-subscriptions-or-switched-off'; return out; }
+    if (!webJobs.length && !nativeJobs.length) { out.skipped = 'no-subscriptions-or-switched-off'; return out; }
 
-    let next = 0;
-    const worker = async () => {
-      while (next < jobs.length) {
-        const sub = jobs[next++];
+    const runPool = async (jobs, fn) => {
+      let next = 0;
+      await Promise.all(Array.from({ length: Math.min(concurrency, jobs.length) }, async () => {
+        while (next < jobs.length) await fn(jobs[next++]);
+      }));
+    };
+    const noteError = (status, message) => { if (out.errors.length < 5) out.errors.push({ status: status || null, message: String(message || '').slice(0, 160) }); };
+
+    await Promise.all([
+      runPool(webJobs, async (sub) => {
         try {
           await webpush.sendNotification({ endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } }, payload, sendOpts);
           out.sent++;
         } catch (err) {
           out.failed++;
-          if (err.statusCode === 404 || err.statusCode === 410) dead.push(sub.endpoint);
-          if (out.errors.length < 5) out.errors.push({ status: err.statusCode || null, message: String(err.body || err.message || '').slice(0, 160) });
-          if (err.statusCode !== 404 && err.statusCode !== 410) console.error('push delivery failed:', err.statusCode, err.message);
+          if (err.statusCode === 404 || err.statusCode === 410) deadWeb.push(sub.endpoint);
+          else console.error('push delivery failed:', err.statusCode, err.message);
+          noteError(err.statusCode, err.body || err.message);
         }
-      }
-    };
-    await Promise.all(Array.from({ length: Math.min(concurrency, jobs.length) }, worker));
+      }),
+      (async () => {
+        if (!nativeJobs.length) return;
+        let bearer;
+        try { bearer = await fcm.accessToken(); }
+        catch (err) { out.failed += nativeJobs.length; noteError(null, 'Firebase sign-in failed: ' + err.message); console.error('FCM auth failed:', err.message); return; }
+        await runPool(nativeJobs, async (t) => {
+          try {
+            const r = await fcm.sendOne(t.token, msg, bearer);
+            if (r.ok) { out.sent++; out.native++; }
+            else { out.failed++; if (r.dead) deadTokens.push(t.token); else console.error('FCM delivery failed:', r.status, r.error); noteError(r.status, r.error); }
+          } catch (err) { out.failed++; noteError(null, err.message); }
+        });
+      })(),
+    ]);
 
-    if (dead.length) {
-      for (let i = 0; i < dead.length; i += 100) {
-        await sb.from('push_subscriptions').delete().in('endpoint', dead.slice(i, i + 100)).then(() => {}, () => {});
-      }
-    }
+    for (let i = 0; i < deadWeb.length; i += 100) await sb.from('push_subscriptions').delete().in('endpoint', deadWeb.slice(i, i + 100)).then(() => {}, () => {});
+    for (let i = 0; i < deadTokens.length; i += 100) await sb.from('device_tokens').delete().in('token', deadTokens.slice(i, i + 100)).then(() => {}, () => {});
   } catch (err) {
     console.error('pushToUsers failed:', err.message);
     out.skipped = 'error';
@@ -318,4 +345,28 @@ async function finalizeOrderPaid(sb, order_type, order) {
   catch (err) { console.error('decrementStockForOrder failed:', err.message); }
 }
 
-module.exports = { supabaseAdmin, paystack, computeCommission, setCors, notifySeller, sendPush, pushToUsers, payAmbassadorCommission, finalizeOrderPaid, COMMISSION_RATE, AMBASSADOR_SHARE, vapidStatus };
+
+// ---------------------------------------------------------------------------
+// WHO IS CALLING? Every route that moves money must know the caller is really signed in
+// and acting for themselves — never trust a user_id sent in the request body.
+// Returns the Supabase user, or sends the 401 itself and returns null.
+async function requireUser(req, res, sb) {
+  const token = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+  if (!token) { res.status(401).json({ error: 'Please sign in again.' }); return null; }
+  const { data } = await sb.auth.getUser(token);
+  if (!data || !data.user) { res.status(401).json({ error: 'Your session has expired — please sign in again.' }); return null; }
+  return data.user;
+}
+async function isAdminUser(sb, userId) {
+  const { data } = await sb.from('profiles').select('is_admin').eq('id', userId).maybeSingle();
+  return !!(data && data.is_admin);
+}
+// True when `userId` is a person on this order (buyer, seller, Swift runner, vendor… — any
+// *_id column on the order row) or an admin. A stranger who merely knows an order id is not.
+async function canActOnOrder(sb, order, userId) {
+  const parties = Object.entries(order || {}).filter(([k, v]) => /_id$/.test(k) && k !== 'id' && typeof v === 'string').map(([, v]) => v);
+  if (parties.includes(userId)) return true;
+  return isAdminUser(sb, userId);
+}
+
+module.exports = { supabaseAdmin, paystack, computeCommission, setCors, notifySeller, sendPush, pushToUsers, fcmStatus, requireUser, isAdminUser, canActOnOrder, payAmbassadorCommission, finalizeOrderPaid, COMMISSION_RATE, AMBASSADOR_SHARE, vapidStatus };

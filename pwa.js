@@ -317,10 +317,123 @@
     return out;
   }
 
-  function pushSupported() {
-    return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+  /* =====================================================================
+   *  NATIVE ANDROID APP (Capacitor). Inside the Play Store app the page runs in a WebView,
+   *  which has no Web Push — notifications come straight from Google's Firebase (FCM) to the
+   *  phone instead, so they arrive even when the app is closed. The native bridge is
+   *  injected into the page as window.Capacitor; we talk to its plugins through that.
+   * ===================================================================== */
+  function isNative() { return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()); }
+  function nat(plugin, method, opts) {
+    try { return window.Capacitor.nativePromise(plugin, method, opts || {}); }
+    catch (e) { return Promise.reject(e); }
   }
-  function pushPermission() { return pushSupported() ? Notification.permission : 'unsupported'; }
+  function natOn(plugin, event, cb) { try { return window.Capacitor.addListener(plugin, event, cb); } catch (e) { return null; } }
+
+  var nativeToken = null, nativeWaiters = [], nativeListening = false, nativePermCache = 'prompt';
+
+  var NATIVE_CHANNELS = [
+    { id: 'messages', name: 'Messages', description: 'Chats and group chats', importance: 4, visibility: 1, vibration: true, lights: true, lightColor: '#7C3AED' },
+    { id: 'calls',    name: 'Calls & lectures', description: 'Incoming calls and lectures', importance: 5, visibility: 1, vibration: true, lights: true, lightColor: '#34D399' },
+    { id: 'updates',  name: 'Listings, posts & orders', description: 'New listings, posts and order updates', importance: 3, visibility: 1, vibration: true }
+  ];
+
+  function saveNativeToken(token, userId) {
+    if (!token || !userId || !window.sb) return Promise.resolve(false);
+    var row = { user_id: userId, token: token, platform: 'android' };
+    return Promise.resolve(window.sb.from('device_tokens').upsert(row, { onConflict: 'token' })).then(function (r) {
+      if (r && r.error) { console.warn('[native] saving device token failed', r.error); return false; }
+      return true;
+    });
+  }
+
+  function handleAppUrl(url) {
+    try {
+      if (!url) return;
+      if (url.indexOf('com.camplugie.app://') === 0) {           // Google sign-in coming back from Chrome
+        nat('Browser', 'close').catch(function () {});
+        var rest = url.slice('com.camplugie.app://'.length);
+        var m = rest.match(/^([^?#]*)([?#].*)?$/);
+        var page = (m && m[1] || 'onboarding').replace(/\/+$/, '') || 'onboarding';
+        if (!/\.html$/.test(page)) page += '.html';
+        location.href = '/' + page + ((m && m[2]) || '');
+      } else if (/^https:\/\/(www\.)?camplugie\.com/i.test(url)) {   // a camplugie.com link opened in the app
+        var u = new URL(url); location.href = u.pathname + u.search + u.hash;
+      }
+    } catch (e) { console.warn('[native] app url', e); }
+  }
+
+  // One-time wiring of native events (taps, foreground pushes, token refresh, deep links).
+  function nativeListen() {
+    if (nativeListening || !isNative()) return; nativeListening = true;
+    natOn('PushNotifications', 'registration', function (t) {
+      nativeToken = t && t.value;
+      var uid = window.CP_USER && window.CP_USER.id;
+      (uid ? saveNativeToken(nativeToken, uid) : Promise.resolve(false)).then(function (ok) {
+        nativeWaiters.splice(0).forEach(function (w) { w(ok); });
+      });
+    });
+    natOn('PushNotifications', 'registrationError', function (e) {
+      console.warn('[native] FCM registration failed', e);
+      nativeWaiters.splice(0).forEach(function (w) { w(false); });
+    });
+    // Tapped a notification (app was closed or in the background) → open what it is about.
+    natOn('PushNotifications', 'pushNotificationActionPerformed', function (a) {
+      var d = (a && a.notification && a.notification.data) || {};
+      if (d.url) location.href = d.url;
+    });
+    // A push that arrives while the app is open: Android shows nothing, so show a banner —
+    // except for calls (the in-app ring screen handles those) or the chat you're already in.
+    natOn('PushNotifications', 'pushNotificationReceived', function (n) {
+      var d = (n && n.data) || {};
+      if (d.type === 'call' || d.type === 'group_call') return;
+      try {
+        var here = new URL(d.url || '/', location.origin);
+        if (here.pathname === location.pathname && here.searchParams.get('id') === new URLSearchParams(location.search).get('id')) return;
+      } catch (_) {}
+      var text = (n.title ? n.title + ': ' : '') + (n.body || '');
+      toast(text.slice(0, 110), d.url ? 'Open' : null, d.url ? function () { location.href = d.url; } : null, 6000);
+    });
+    natOn('App', 'appUrlOpen', function (e) { handleAppUrl(e && e.url); });
+  }
+
+  function nativeChannels() {
+    return Promise.all(NATIVE_CHANNELS.map(function (c) { return nat('PushNotifications', 'createChannel', c).catch(function () {}); }));
+  }
+  function nativePerm() {
+    return nat('PushNotifications', 'checkPermissions').then(function (r) {
+      nativePermCache = r.receive === 'granted' ? 'granted' : r.receive === 'denied' ? 'denied' : 'prompt';
+      return nativePermCache;
+    }, function () { return 'prompt'; });
+  }
+  // Asks (if `ask`) for the Android notification permission and registers this phone with Firebase.
+  function nativeRegister(user, ask) {
+    nativeListen();
+    if (user && user.id) window.CP_USER = window.CP_USER || user;
+    return nativeChannels().then(nativePerm).then(function (state) {
+      if (state === 'prompt' && ask) return nat('PushNotifications', 'requestPermissions').then(function (r) { return r.receive === 'granted' ? 'granted' : r.receive === 'denied' ? 'denied' : 'prompt'; });
+      return state;
+    }).then(function (state) {
+      nativePermCache = state;
+      if (state !== 'granted') return false;
+      return new Promise(function (resolve) {
+        var t = setTimeout(function () { resolve(false); }, 15000);
+        nativeWaiters.push(function (ok) { clearTimeout(t); resolve(ok); });
+        nat('PushNotifications', 'register').catch(function () { clearTimeout(t); resolve(false); });
+      });
+    }).catch(function (e) { console.warn('[native] register failed', e); return false; });
+  }
+  function nativeUnregister() {
+    var tok = nativeToken;
+    return Promise.resolve(tok && window.sb ? window.sb.from('device_tokens').delete().eq('token', tok) : null).then(function () { return true; }, function () { return true; });
+  }
+  // Remembers which of mic / camera / location were granted inside the app (WebViews can't be asked).
+  function nativeFlag(id, val) { try { if (val) localStorage.setItem('cp_native_perm_' + id, val); return localStorage.getItem('cp_native_perm_' + id); } catch (e) { return null; } }
+
+  function pushSupported() {
+    return isNative() || ('serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window);
+  }
+  function pushPermission() { return isNative() ? nativePermCache : (pushSupported() ? Notification.permission : 'unsupported'); }
 
   // Subscribes THIS device and saves it to push_subscriptions so the server can
   // reach it. `ask` = true shows the browser permission prompt (must be called
@@ -329,9 +442,13 @@
   function saveSubscription(sub, userId) {
     var j = sub.toJSON();
     if (!j.keys) return Promise.resolve(false);
-    return window.sb.from('push_subscriptions').upsert({
-      user_id: userId, endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth,
-    }, { onConflict: 'endpoint' }).then(function (r) {
+    var row = { user_id: userId, endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth, user_agent: (navigator.userAgent || '').slice(0, 200) };
+    function save(r0) { return window.sb.from('push_subscriptions').upsert(r0, { onConflict: 'endpoint' }); }
+    return save(row).then(function (r) {
+      // Older database without the user_agent column yet? Save without it rather than fail.
+      if (r && r.error && /user_agent/i.test(r.error.message || '')) { delete row.user_agent; return save(row); }
+      return r;
+    }).then(function (r) {
       if (r && r.error) { console.warn('[pwa] saving push subscription failed', r.error); return false; }
       return true;
     });
@@ -340,6 +457,7 @@
   function subscribePush(userId, ask) {
     if (!pushSupported() || !userId || !window.sb) return Promise.resolve(false);
     if (ask === undefined) ask = true;
+    if (isNative()) return nativeRegister({ id: userId }, ask);
     var permP = Notification.permission === 'default' && ask
       ? Notification.requestPermission()
       : Promise.resolve(Notification.permission);
@@ -362,12 +480,39 @@
     }).catch(function (e) { console.warn('[pwa] push subscribe failed', e); return false; });
   }
 
+  // Same report for the Android app: permission → Firebase token → server → real test push.
+  function diagnoseNative() {
+    var lines = [];
+    function add(ok, name, detail) { lines.push({ ok: ok, name: name, detail: detail }); }
+    return (async function () {
+      add(true, 'This phone', 'Running inside the Camplugie Android app.');
+      nativeListen();
+      var state = await nativePerm();
+      if (state === 'denied') { add(false, 'Permission', 'Notifications are BLOCKED. Open phone Settings → Apps → Camplugie → Notifications → Allow, then try again.'); return lines; }
+      if (state !== 'granted') { add(false, 'Permission', 'Not allowed yet. Switch Push notifications off and on, and tap Allow.'); return lines; }
+      add(true, 'Permission', 'Allowed.');
+      var ok = await nativeRegister(window.CP_USER, false);
+      if (!ok || !nativeToken) add(false, 'Firebase', 'This phone could not register with Firebase. Check that google-services.json was added to native/ before the app was built, and that the phone has internet + Google Play services.');
+      else add(true, 'Firebase', 'This phone is registered with Google’s push service.');
+      try {
+        var sess = await window.sb.auth.getSession();
+        var token = sess && sess.data && sess.data.session && sess.data.session.access_token;
+        var r = await fetch('/api/push-test', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify({ native_token: nativeToken || null, appKey: VAPID_PUBLIC_KEY }) });
+        var j = await r.json().catch(function () { return {}; });
+        if (j.steps) j.steps.forEach(function (st) { lines.push(st); });
+        else add(false, 'Server', j.error || ('The server answered ' + r.status + '.'));
+      } catch (e) { add(false, 'Server', 'Could not reach the server: ' + e.message); }
+      return lines;
+    })();
+  }
+
   // Walks the whole push chain for this phone and returns [{ok,name,detail}] in plain
   // English (used by Settings → "Send test notification"). Also asks the server to check
   // its keys + saved devices and to send a real test push.
   function diagnosePush() {
     var lines = [];
     function add(ok, name, detail) { lines.push({ ok: ok, name: name, detail: detail }); }
+    if (isNative()) return diagnoseNative();
     return (async function () {
       if (!pushSupported()) {
         add(false, 'This phone', 'This browser can’t receive push notifications. On iPhone, first add Camplugie to your Home Screen and open it from there.');
@@ -426,6 +571,7 @@
   // Unsubscribes this device and removes its row so the server stops
   // trying to push to it.
   function unsubscribePush() {
+    if (isNative()) return nativeUnregister();
     if (!pushSupported()) return Promise.resolve(false);
     return navigator.serviceWorker.ready.then(function (reg) {
       return reg.pushManager.getSubscription();
@@ -494,6 +640,10 @@
 
   function permState(id) {
     if (id === 'files') return Promise.resolve('always');
+    if (isNative()) {                                   // inside the app, ask Android (notifications) or use what we remember
+      if (id === 'notifications') return nativePerm();
+      return Promise.resolve(nativeFlag(id) === 'granted' ? 'granted' : 'prompt');
+    }
     if (id === 'notifications') {
       if (!('Notification' in window)) return Promise.resolve('unsupported');
       return Promise.resolve({ granted: 'granted', denied: 'denied', 'default': 'prompt' }[Notification.permission]);
@@ -515,9 +665,8 @@
   }
   function askPerm(id, user) {
     if (id === 'notifications') return subscribePush(user.id, true);
-    if (id === 'microphone' || id === 'camera') return askMedia(id);
-    if (id === 'geolocation') return askLocation();
-    return Promise.resolve(true);
+    var p = (id === 'microphone' || id === 'camera') ? askMedia(id) : id === 'geolocation' ? askLocation() : Promise.resolve(true);
+    return p.then(function (ok) { if (ok && isNative()) nativeFlag(id, 'granted'); return ok; });
   }
 
   addStyle('cp-perms-css', [
@@ -632,6 +781,11 @@
     if (!user) return;
     window.CP_USER = window.CP_USER || user;
     maybeShowPermSheet(user);                                           // one friendly "allow everything" screen, once
+    if (isNative()) {                                                   // Android app: keep this phone registered with Firebase
+      nativeListen();
+      if (!profile || profile.push_enabled !== false) nativePerm().then(function (st) { if (st === 'granted') nativeRegister(user, false); });
+      return;
+    }
     if (!pushSupported()) return;
     var enabled = !profile || profile.push_enabled !== false;      // null/undefined = on by default
     if (!enabled) return;
@@ -648,6 +802,8 @@
     if (Date.now() < (+store('cp_push_snooze') || 0)) return;
     setTimeout(function () { showPushBanner(user); }, isStandalone() ? 4000 : 12000);
   });
+
+  if (isNative()) nativeListen();
 
   // Messages from the service worker.
   if ('serviceWorker' in navigator) {

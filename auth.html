@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script>(function(){try{var t=localStorage.getItem('cp-theme');if(t==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}})();</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Camplugie — Sign in</title>
@@ -10,41 +9,6 @@
 
 /* ===== Design tokens (matches Camplugie's existing dark theme) ===== */
 :root {
-  --nav-h: 58px;
-  --bottom-h: 68px;
-  --radius: 18px;
-  --radius-sm: 12px;
-  --safe-top: env(safe-area-inset-top, 0px);
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
-
-  /* ===== Light theme (default) ===== */
-  --brand: #7C3AED;
-  --brand-dark: #5B21B6;
-  --brand-soft: rgba(124,58,237,0.10);
-  --accent: #B45309;
-  --accent-soft: rgba(180,83,9,0.10);
-  --money: #059669;
-  --danger: #E11D48;
-
-  --bg: #FAFAFC;
-  --bg-gradient: radial-gradient(circle at 20% -10%, rgba(124,58,237,0.07), transparent 40%), linear-gradient(180deg, #FFFFFF 0%, #FAFAFC 100%);
-  --surface: #FFFFFF;
-  --surface2: #F4F3F8;
-  --surface3: #ECEAF3;
-  --border: rgba(20,10,40,0.09);
-
-  --text: #16121F;
-  --text2: #4B455C;
-  --text3: #7A7390;
-
-  --shadow: 0 10px 26px rgba(20,10,40,0.08);
-  --shadow-lg: 0 24px 60px rgba(20,10,40,0.14);
-
-  --glass: rgba(255,255,255,0.85);
-  --glass-strong: rgba(255,255,255,0.92);
-}
-
-:root[data-theme="dark"] {
   --brand: #A78BFA;
   --brand-dark: #7C3AED;
   --brand-soft: rgba(167, 139, 250, 0.14);
@@ -64,11 +28,14 @@
   --text2: #C9C3DE;
   --text3: #8D86AA;
 
+  --nav-h: 58px;
+  --bottom-h: 68px;
+  --radius: 18px;
+  --radius-sm: 12px;
   --shadow: 0 14px 38px rgba(0,0,0,0.28);
   --shadow-lg: 0 24px 80px rgba(0,0,0,0.48);
-
-  --glass: rgba(9, 7, 20, 0.88);
-  --glass-strong: rgba(18, 16, 29, 0.92);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -105,7 +72,7 @@ img { max-width: 100%; display: block; }
   justify-content: space-between;
   gap: 12px;
   padding: calc(var(--safe-top) + 14px) 16px 12px;
-  background: var(--glass);
+  background: rgba(9, 7, 20, 0.88);
   backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--border);
 }
@@ -329,7 +296,7 @@ img { max-width: 100%; display: block; }
   width: 100%; max-width: 480px;
   height: calc(var(--bottom-h) + var(--safe-bottom));
   padding-bottom: var(--safe-bottom);
-  background: var(--glass-strong);
+  background: rgba(18, 16, 29, 0.92);
   backdrop-filter: blur(16px);
   border-top: 1px solid var(--border);
   display: flex; align-items: center; justify-content: space-around;
@@ -365,7 +332,7 @@ img { max-width: 100%; display: block; }
   display: flex; align-items: center; justify-content: space-between;
   gap: 12px;
   padding: calc(var(--safe-top) + 14px) 16px 12px;
-  background: var(--glass);
+  background: rgba(9, 7, 20, 0.88);
   backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--border);
 }
@@ -1160,6 +1127,10 @@ img { max-width: 100%; display: block; }
   <button type="button" class="landing-google-lg" id="googleBtn" style="color:var(--brand-dark); box-shadow:none; border:1px solid var(--border);">
     Continue with Google
   </button>
+  <p style="margin:10px 4px 0;text-align:center;font-size:11.5px;line-height:1.5;color:var(--text3)">By continuing you agree to our
+    <a href="terms.html" style="color:inherit;text-decoration:underline">Terms</a>,
+    <a href="privacy-policy.html" style="color:inherit;text-decoration:underline">Privacy Policy</a> and
+    <a href="community-guidelines.html" style="color:inherit;text-decoration:underline">Community Guidelines</a>.</p>
   <div style="display:flex;align-items:center;gap:10px;margin:16px 0;color:var(--text3);font-size:12px">
     <div style="flex:1;height:1px;background:var(--border)"></div>or<div style="flex:1;height:1px;background:var(--border)"></div>
   </div>
@@ -1377,12 +1348,35 @@ document.getElementById('googleBtn').addEventListener('click', async () => {
   // is how people ended up "somewhere else". So redirect to a clean URL and remember where the
   // user was heading in localStorage instead; onboarding.html picks it up on return.
   try { localStorage.setItem('cp_return_to', JSON.stringify({ to: cpReturnTo(), t: Date.now() })); } catch (_) {}
-  const { error } = await window.sb.auth.signInWithOAuth({
+  // Inside the Android app Google refuses to sign in from an embedded browser, so open the
+  // Google page in Chrome (a Custom Tab) and come back through com.camplugie.app://onboarding.
+  const cap = window.Capacitor;
+  const inApp = !!(cap && cap.isNativePlatform && cap.isNativePlatform());
+  const { data, error } = await window.sb.auth.signInWithOAuth({
     provider: 'google',
-    options: { redirectTo: window.location.origin + '/onboarding.html' },
+    options: inApp
+      ? { redirectTo: 'com.camplugie.app://onboarding', skipBrowserRedirect: true }
+      : { redirectTo: window.location.origin + '/onboarding.html' },
   });
-  if (error) { console.error('Google sign-in error:', error); showError(error); }
+  if (error) { console.error('Google sign-in error:', error); showError(error); return; }
+  if (inApp && data && data.url) {
+    try { await cap.nativePromise('Browser', 'open', { url: data.url }); }
+    catch (e) { showError({ message: 'Could not open the Google sign-in page. Please try again.' }); }
+  }
 });
+
+// Android app: Chrome hands the finished sign-in back here (com.camplugie.app://onboarding#…).
+if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
+  window.Capacitor.addListener('App', 'appUrlOpen', (e) => {
+    const url = (e && e.url) || '';
+    if (url.indexOf('com.camplugie.app://') !== 0) return;
+    try { window.Capacitor.nativePromise('Browser', 'close', {}).catch(() => {}); } catch (_) {}
+    const m = url.slice('com.camplugie.app://'.length).match(/^([^?#]*)([?#].*)?$/);
+    let page = ((m && m[1]) || 'onboarding').replace(/\/+$/, '') || 'onboarding';
+    if (!/\.html$/.test(page)) page += '.html';
+    window.location.href = '/' + page + ((m && m[2]) || '');
+  });
+}
 
 // ---- Tab switching (login / signup) ----
 const tabs = document.querySelectorAll('.auth-tab');
@@ -1601,20 +1595,5 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
-<button id="cpThemeToggle" aria-label="Toggle dark mode" style="position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 84px);right:14px;z-index:999;width:36px;height:36px;border-radius:50%;border:1px solid var(--border);background:var(--surface2);color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:var(--shadow);font-size:16px;line-height:1;">🌙</button>
-<script>(function(){
-  var btn = document.getElementById('cpThemeToggle');
-  if (!btn) return;
-  function isDark(){ return document.documentElement.getAttribute('data-theme') === 'dark'; }
-  function sync(){ btn.textContent = isDark() ? '☀️' : '🌙'; }
-  sync();
-  btn.addEventListener('click', function(){
-    var next = isDark() ? '' : 'dark';
-    if (next) { document.documentElement.setAttribute('data-theme','dark'); }
-    else { document.documentElement.removeAttribute('data-theme'); }
-    try { localStorage.setItem('cp-theme', next || 'light'); } catch(e){}
-    sync();
-  });
-})();</script>
 </body>
 </html>

@@ -914,6 +914,26 @@ img { max-width: 100%; display: block; }
         <div class="settings-row-text"><b>Privacy policy</b><span>How we handle your data</span></div>
         <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
       </a>
+      <a class="settings-row link" href="terms.html">
+        <div class="settings-row-text"><b>Terms of service</b><span>The rules for using Camplugie</span></div>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </a>
+      <a class="settings-row link" href="refund-policy.html">
+        <div class="settings-row-text"><b>Payments, escrow &amp; refunds</b><span>How your money is protected</span></div>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </a>
+      <a class="settings-row link" href="community-guidelines.html">
+        <div class="settings-row-text"><b>Community guidelines</b><span>Keeping Camplugie safe</span></div>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </a>
+      <a class="settings-row link" href="child-safety.html">
+        <div class="settings-row-text"><b>Child safety standards</b><span>Our zero-tolerance policy</span></div>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </a>
+      <a class="settings-row link" href="account-deletion.html">
+        <div class="settings-row-text"><b>Delete your account</b><span>How to delete your data</span></div>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </a>
     </div>
   </div>
 
@@ -1079,12 +1099,27 @@ document.getElementById('logoutBtn').addEventListener('click', (e) => {
 
 document.getElementById('deleteAccountBtn').addEventListener('click', async (e) => {
   e.preventDefault();
-  const confirmed = confirm('Delete your account permanently? This removes your listings, posts, and chats and cannot be undone.');
-  if (!confirmed) return;
-  // Actual account deletion requires the service role key server-side (an Edge
-  // Function calling supabase.auth.admin.deleteUser) — the anon key can't do
-  // this from the client. Wire this button to that endpoint once it exists.
-  alert('Account deletion requires a backend step we haven\u2019t wired up yet — contact info@camplugie.com for now.');
+  const typed = prompt('Delete your Camplugie account permanently?\n\nThis removes your profile, listings, posts and messages and cannot be undone.\n\nType DELETE to confirm:');
+  if (typed === null) return;
+  if (typed.trim() !== 'DELETE') { alert('Nothing was deleted — you need to type DELETE exactly.'); return; }
+  const row = e.currentTarget; row.style.opacity = '.5'; row.style.pointerEvents = 'none';
+  try {
+    const { data: { session } } = await window.sb.auth.getSession();
+    const r = await fetch('/api/delete-account', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token || ''}` },
+      body: JSON.stringify({ confirm: 'DELETE' }),
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || 'Could not delete your account.');
+    try { await window.sb.auth.signOut(); } catch (_) {}
+    try { localStorage.clear(); } catch (_) {}
+    alert('Your account has been deleted. Goodbye, and thank you for using Camplugie.');
+    window.location.href = '/auth.html';
+  } catch (err) {
+    row.style.opacity = ''; row.style.pointerEvents = '';
+    alert(err.message);
+  }
 });
 
 </script>

@@ -1,76 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script>(function(){try{var t=localStorage.getItem('cp-theme');if(t==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}})();</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Camplugie — Privacy Policy</title>
-<meta name="description" content="Camplugie Privacy Policy — how we collect, use, and protect your data.">
+<meta name="description" content="Camplugie Privacy Policy — how Alphastack Digital Solutions Ltd collects, uses and protects your data.">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <link rel="icon" href="/icons/icon-192.png" type="image/png">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Clash+Display:wght@600;700&family=Satoshi:wght@400;500;700;900&display=swap');
 :root {
-  --nav-h: 58px;
-  --bottom-h: 68px;
-  --radius: 18px;
-  --radius-sm: 12px;
-  --safe-top: env(safe-area-inset-top, 0px);
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
-
-  /* ===== Light theme (default) ===== */
-  --brand: #7C3AED;
-  --brand-dark: #5B21B6;
-  --brand-soft: rgba(124,58,237,0.10);
-  --accent: #B45309;
-  --accent-soft: rgba(180,83,9,0.10);
-  --money: #059669;
-  --danger: #E11D48;
-
-  --bg: #FAFAFC;
-  --bg-gradient: radial-gradient(circle at 20% -10%, rgba(124,58,237,0.07), transparent 40%), linear-gradient(180deg, #FFFFFF 0%, #FAFAFC 100%);
-  --surface: #FFFFFF;
-  --surface2: #F4F3F8;
-  --surface3: #ECEAF3;
-  --border: rgba(20,10,40,0.09);
-
-  --text: #16121F;
-  --text2: #4B455C;
-  --text3: #7A7390;
-
-  --shadow: 0 10px 26px rgba(20,10,40,0.08);
-  --shadow-lg: 0 24px 60px rgba(20,10,40,0.14);
-
-  --glass: rgba(255,255,255,0.85);
-  --glass-strong: rgba(255,255,255,0.92);
-}
-
-:root[data-theme="dark"] {
-  --brand: #A78BFA;
-  --brand-dark: #7C3AED;
-  --brand-soft: rgba(167, 139, 250, 0.14);
-  --accent: #FBBF24;
-  --accent-soft: rgba(251, 191, 36, 0.14);
-  --money: #34D399;
-  --danger: #FB7185;
-
+  --brand: #A78BFA; --brand-dark: #7C3AED; --brand-soft: rgba(167,139,250,0.14);
   --bg: #090714;
   --bg-gradient: radial-gradient(circle at 20% -10%, rgba(124,58,237,0.34), transparent 36%), linear-gradient(180deg, #0E0A1D 0%, #090714 100%);
-  --surface: #12101D;
-  --surface2: #1A1729;
-  --surface3: #242039;
-  --border: rgba(255,255,255,0.10);
-
-  --text: #F8F6FF;
-  --text2: #C9C3DE;
-  --text3: #8D86AA;
-
-  --shadow: 0 14px 38px rgba(0,0,0,0.28);
-  --shadow-lg: 0 24px 80px rgba(0,0,0,0.48);
-
-  --glass: rgba(9, 7, 20, 0.88);
-  --glass-strong: rgba(18, 16, 29, 0.92);
+  --surface: #12101D; --surface2: #1A1729; --border: rgba(255,255,255,0.10);
+  --text: #F8F6FF; --text2: #C9C3DE; --text3: #8D86AA;
+  --radius: 18px; --radius-sm: 12px;
+  --safe-top: env(safe-area-inset-top, 0px); --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; padding: 0; }
@@ -107,142 +54,143 @@ footer { text-align: center; color: var(--text3); font-size: 12px; margin-top: 2
     Back
   </a>
   <h1>Privacy Policy</h1>
-  <div class="updated">Effective date: September 22, 2026 · Applies to the Camplugie website, Android app, and APK.</div>
+  <div class="updated">Effective date: October 15, 2026 · Applies to the Camplugie Android app, website and web app.</div>
 
   <section>
-    <span class="badge">Overview</span>
-    <p>Camplugie ("we", "us", "our") is a campus marketplace and community app. This policy explains what
-    information we collect when you use Camplugie, why we collect it, who we share it with, and the choices
-    you have. By creating an account or using the app, you agree to this policy.</p>
+    <h2>Who we are</h2>
+    <p>Camplugie (“Camplugie”, “we”, “us”, “our”) is a campus marketplace and community app owned and operated by <b>Alphastack Digital Solutions Ltd</b>, Garki, Abuja, Nigeria. We are the <b>data controller</b> for the personal information described in this policy. This policy applies to the Camplugie Android app (Google Play), the Camplugie website at camplugie.com, and the Camplugie installable web app. It is written to meet the <b>Nigeria Data Protection Act 2023 (NDPA)</b> and Google Play’s User Data policy. By creating an account or using Camplugie you agree to this policy.</p>
   </section>
 
   <section>
     <h2>Information we collect</h2>
-    <h3>Account &amp; profile</h3>
-    <ul>
-      <li>Name, email, and profile photo from Google Sign-In (we use Google-only authentication)</li>
-      <li>University / school you select or are affiliated with</li>
-      <li>Username, bio, and any other profile details you choose to add</li>
-    </ul>
-    <h3>Marketplace &amp; transactions</h3>
-    <ul>
-      <li>Listings you create (title, price, photos, description, category)</li>
-      <li>Order, escrow, and payment records (amount, status, buyer/seller, timestamps) processed via Paystack</li>
-      <li>Bank account details you add for payouts/withdrawals (collected and tokenized by Paystack — Camplugie does not store full card or bank credentials)</li>
-      <li>Wallet balance and transaction history</li>
-    </ul>
-    <h3>Chat, social &amp; groups</h3>
-    <ul>
-      <li>Messages, media (photos, videos, voice notes, documents), and reactions you send in 1:1 or group chats</li>
-      <li>Posts, comments, likes, reposts, and other Yard feed activity</li>
-      <li>Reports you file against other users and blocks you place on other users</li>
-    </ul>
-    <h3>Swift delivery</h3>
-    <ul>
-      <li>Your device's real-time location while actively using the Swift runner map or tracking a delivery, so pickup/drop-off and live tracking work</li>
-      <li>Delivery PINs and order status</li>
-    </ul>
-    <h3>Notifications</h3>
-    <ul>
-      <li>A push-notification subscription token for your device/browser (endpoint + encryption keys), if you enable push notifications</li>
-    </ul>
-    <h3>Device &amp; usage data</h3>
-    <ul>
-      <li>Basic device/browser information, app version, and crash/error logs for debugging</li>
-      <li>Standard web log data (IP address, timestamps) collected by our hosting provider</li>
+    <h3>Account &amp; profile</h3>    <ul>
+      <li>Name, email address and profile photo — from Google Sign-In, or from the email and password you register with</li>
+      <li>University, username, bio, an optional phone number, and any other profile details you choose to add</li>
+      <li>Referral / ambassador code, if you use one</li>
+    </ul>    <h3>Marketplace, payments &amp; wallet</h3>    <ul>
+      <li>Listings you create (title, price, description, category, photos)</li>
+      <li>Orders, escrow and payment records (amount, status, buyer, seller, timestamps) processed through Paystack</li>
+      <li>Wallet balance, top-ups, transfers between users and withdrawals</li>
+      <li>Bank account details you add for withdrawals — these are sent to Paystack, which creates a secure payout reference. We keep only that reference, the bank name, the account name and the account number you gave us. We do not store card numbers or PINs</li>
+    </ul>    <h3>Chats, groups, calls &amp; lectures</h3>    <ul>
+      <li>Messages, photos, videos, voice notes and documents you send in 1:1 and group chats; reactions, replies and read receipts</li>
+      <li>Posts, comments and likes on The Yard; groups you create or join</li>
+      <li>Audio and video during calls and group lectures are streamed between participants. <b>We do not record calls or lectures</b></li>
+      <li>Reports you file and users you block</li>
+    </ul>    <h3>Location</h3>    <ul>
+      <li>Your device’s approximate or precise location <b>only when you use Swift delivery features</b> — for example when you tap “Use my current location”, drop a pickup/drop-off pin, or track a delivery</li>
+      <li>Addresses you type into Swift’s address search (sent to our address-search provider to suggest places)</li>
+      <li>We do <b>not</b> collect location in the background and the app does not have background-location permission</li>
+    </ul>    <h3>Photos, camera &amp; microphone</h3>    <ul>
+      <li>Camera and microphone are used only when you place or answer a call, join a lecture, record a voice note, or take a photo to attach</li>
+      <li>Photos and files are only shared when <b>you pick them</b> with your phone’s own picker. Camplugie does not browse or scan your photo library or files</li>
+    </ul>    <h3>Notifications &amp; device information</h3>    <ul>
+      <li>A push-notification token for your phone (Firebase Cloud Messaging in the Android app) or an endpoint and encryption keys for your browser (web push), so we can send alerts</li>
+      <li>Device type, operating system, app version, language, crash and error logs, and IP address / request logs from our hosting provider</li>
+      <li>Your notification preferences (messages, calls, groups, listings, posts, orders)</li>
     </ul>
   </section>
 
   <section>
-    <h2>How we use your information</h2>
+    <h2>Permissions the Android app asks for</h2>
+    <table>
+      <tr><th>Permission</th><th>Why we ask</th></tr>
+      <tr><td>Notifications</td><td>Alerts for messages, calls, lectures, orders, new listings and posts. You can switch each type off in Settings.</td></tr>
+      <tr><td>Microphone</td><td>Voice and video calls, lectures and voice notes.</td></tr>
+      <tr><td>Camera</td><td>Video calls, lectures, and photos for listings, posts and chats.</td></tr>
+      <tr><td>Location (approximate / precise)</td><td>Swift delivery: placing pins, finding the route and fee, and live delivery tracking — only while you use those features.</td></tr>
+      <tr><td>Internet &amp; network state</td><td>To load Camplugie and detect when you are offline.</td></tr>
+      <tr><td>Vibrate</td><td>Notification and call alerts.</td></tr>
+    </table>
+    <p>Camera, microphone and location are optional. If you decline them, the rest of Camplugie keeps working; only the feature that needs them is unavailable. You can change any permission at any time in your phone’s Settings → Apps → Camplugie → Permissions.</p>
+  </section>
+
+  <section>
+    <h2>How we use your information, and why</h2>
     <ul>
-      <li>To create and secure your account, and verify you're a real student</li>
-      <li>To operate the marketplace: listings, chat between buyers/sellers, escrow payments, and Swift delivery</li>
-      <li>To send you notifications about messages, sales, orders, and Swift jobs — in-app, by email, and as device push notifications</li>
-      <li>To calculate and pay out ambassador commissions and runner/seller earnings</li>
-      <li>To review reports, enforce blocks, and moderate the platform for safety</li>
-      <li>To improve the app, fix bugs, and prevent fraud or abuse</li>
-    </ul>
+      <li><b>To provide Camplugie</b> (contract): create and secure your account, run the marketplace, hold and release escrow payments, operate your wallet, connect buyers, sellers, runners and groups, and run Swift delivery</li>
+      <li><b>To send notifications</b> (consent / contract): messages, calls, lectures, order and delivery updates, and — if you leave them on — new listings and posts on your campus</li>
+      <li><b>To keep Camplugie safe</b> (legitimate interests / legal obligation): detect fraud and abuse, review reports, enforce blocks, and comply with law</li>
+      <li><b>To pay people</b> (contract): calculate commissions and pay out seller, runner and ambassador earnings</li>
+      <li><b>To improve Camplugie</b> (legitimate interests): fix bugs, measure reliability and develop features</li>
+    </ul>    <p>We do not sell your personal data, and we do not use your private messages for advertising.</p>
   </section>
 
   <section>
     <h2>Who we share data with</h2>
-    <p>We do not sell your personal data. We share data only with the service providers that make Camplugie
-    work, and only what each one needs:</p>
+    <p>We share data only with the service providers that make Camplugie work, and only what each needs:</p>
     <table>
-      <tr><th>Provider</th><th>Purpose</th><th>Data shared</th></tr>
-      <tr><td>Google</td><td>Sign-in</td><td>Email, name, profile photo</td></tr>
-      <tr><td>Supabase</td><td>Database, auth, storage, realtime</td><td>All account, listing, chat, and order data</td></tr>
-      <tr><td>Paystack</td><td>Payments &amp; payouts</td><td>Amount, buyer/seller reference, bank/card details you enter directly with Paystack</td></tr>
-      <tr><td>Cloudinary / Supabase Storage</td><td>Photo &amp; video hosting</td><td>Media files you upload</td></tr>
-      <tr><td>Resend</td><td>Transactional email</td><td>Your email address, notification content</td></tr>
-      <tr><td>OpenStreetMap / OSRM</td><td>Swift delivery maps &amp; routing</td><td>Approximate pickup/drop-off coordinates (no account data)</td></tr>
-      <tr><td>Vercel</td><td>Hosting</td><td>Standard web request logs</td></tr>
+      <tr><th>Provider</th><th>Purpose</th><th>Data</th></tr>
+      <tr><td>Google (Sign-In, Firebase Cloud Messaging)</td><td>Sign-in; delivering push notifications to the Android app</td><td>Name, email, photo (Sign-In); device push token and notification content (FCM)</td></tr>
+      <tr><td>Supabase</td><td>Database, authentication, file storage, realtime messaging</td><td>Account, listing, chat, order and wallet data</td></tr>
+      <tr><td>Paystack</td><td>Payments, refunds and payouts</td><td>Amount, email, order reference; bank or card details you enter directly with Paystack</td></tr>
+      <tr><td>Cloudinary / Supabase Storage</td><td>Photo and video hosting</td><td>Media you upload</td></tr>
+      <tr><td>Resend</td><td>Transactional email</td><td>Your email address and notification content</td></tr>
+      <tr><td>OpenStreetMap, Photon, OSRM</td><td>Swift maps, address search and routing</td><td>Map areas, the text you search, and pickup/drop-off coordinates (no account data)</td></tr>
+      <tr><td>Vercel</td><td>Website and server hosting</td><td>Standard request logs (IP address, time)</td></tr>
     </table>
-    <p>We may also disclose information if required by law, or to protect the rights, property, or safety
-    of Camplugie, our users, or the public.</p>
+    <p>When you chat, trade or take part in a group, the people you interact with can see the information you choose to share with them (such as your name, photo, listings, messages and posts). We may also disclose information if required by law, court order or a lawful request from a Nigerian authority, or to protect the rights, property or safety of Camplugie, our users or the public.</p>
   </section>
 
   <section>
-    <h2>Your choices &amp; rights</h2>
+    <h2>International transfers</h2>
+    <p>Our providers (for example Google, Supabase, Vercel and Paystack) may process data on servers outside Nigeria. Where this happens we rely on appropriate safeguards required by the NDPA, such as contractual protections with those providers.</p>
+  </section>
+
+  <section>
+    <h2>How long we keep data</h2>
     <ul>
-      <li><strong>Notifications:</strong> turn push notifications on/off anytime in Settings.</li>
-      <li><strong>Blocking &amp; reporting:</strong> block a user to stop them messaging or calling you; report a user to send their conduct to our support team for review.</li>
-      <li><strong>Access &amp; correction:</strong> edit your profile and listings directly in the app.</li>
-      <li><strong>Delete your account:</strong> available in Settings → Account actions. This removes your profile and personal data from active use; some records (e.g. completed transactions) may be retained as required for accounting, fraud-prevention, or legal reasons.</li>
-      <li><strong>Contact us</strong> at <a href="mailto:info@camplugie.com">info@camplugie.com</a> for any privacy request.</li>
+      <li><b>Your account data</b> is kept while your account is active.</li>
+      <li><b>When you delete your account</b> we remove your profile details, listings, posts, messages you sent, group memberships, notification tokens and bank payout reference (see “Delete your account” below).</li>
+      <li><b>Transaction records</b> (completed orders, receipts and wallet history) are kept, without your name on them, for as long as Nigerian tax, accounting, anti-fraud and dispute rules require.</li>
+      <li><b>Server logs</b> are kept for a short period for security and debugging.</li>
     </ul>
   </section>
 
   <section>
-    <h2>Data retention &amp; security</h2>
-    <p>We retain your data for as long as your account is active, or as needed to provide the service,
-    resolve disputes, and comply with legal obligations. Data is encrypted in transit (HTTPS) and access to
-    our database is protected by row-level security so users can only read data they're authorized to see.
-    No method of transmission or storage is 100% secure, and we cannot guarantee absolute security.</p>
+    <h2>Your rights</h2>
+    <p>Under the NDPA you have the right to: be informed about how we use your data; access your data; correct inaccurate data; request erasure; restrict or object to processing; receive your data in a portable format; withdraw consent at any time (this does not affect earlier processing); and not be subject to decisions made solely by automated means that significantly affect you.</p>    <ul>
+      <li>Most things you can do yourself in the app: edit your profile and listings, change notification switches, block or report users, and delete your account.</li>
+      <li>For anything else, email <a href="mailto:info@camplugie.com">info@camplugie.com</a>. We aim to reply within 30 days.</li>
+      <li>If you are not satisfied with our response, you have the right to complain to the <b>Nigeria Data Protection Commission (NDPC)</b>.</li>
+    </ul>
   </section>
 
   <section>
-    <h2>Location data</h2>
-    <p>Location is only collected while you actively use Swift delivery features (as a buyer tracking an
-    order, or a runner fulfilling one). We do not track your location in the background or outside of an
-    active Swift session.</p>
+    <h2>Delete your account</h2>
+    <p>You can delete your account at any time in the app: <b>Settings → Account actions → Delete account</b>. You can also request deletion without the app on our <a href="account-deletion.html">account deletion page</a>. Deleting your account is permanent. Before you can delete it, any money left in your wallet must be withdrawn and any order in progress must be finished or cancelled.</p>
   </section>
 
   <section>
-    <h2>Children's privacy</h2>
-    <p>Camplugie is intended for university students and is not directed at children under 13. We do not
-    knowingly collect personal information from children under 13. If you believe a child has provided us
-    personal information, contact us and we will delete it.</p>
+    <h2>Security</h2>
+    <p>Data is encrypted in transit (HTTPS). Our database uses row-level security so people can only read data they are allowed to see, and payments are handled by Paystack so we never see your full card details. No method of transmission or storage is 100% secure, so we cannot guarantee absolute security. Never share your password or your Swift delivery PIN with anyone you do not trust.</p>
+  </section>
+
+  <section>
+    <h2>Children</h2>
+    <p>Camplugie is for people aged <b>18 and over</b>. We do not knowingly collect personal information from anyone under 18. If you believe a person under 18 has given us information, contact us and we will delete it. See also our <a href="child-safety.html">Child Safety Standards</a>.</p>
   </section>
 
   <section>
     <h2>Changes to this policy</h2>
-    <p>We may update this policy from time to time. We'll update the "Effective date" above and, for
-    material changes, notify you in-app or by email.</p>
+    <p>We may update this policy from time to time. We will change the effective date above and, for important changes, tell you in the app or by email.</p>
   </section>
 
   <section>
     <h2>Contact</h2>
-    <p>Questions about this policy or your data? Email <a href="mailto:info@camplugie.com">info@camplugie.com</a>.</p>
+    <p><b>Alphastack Digital Solutions Ltd</b><br>Garki, Abuja, Nigeria<br>Email: <a href="mailto:info@camplugie.com">info@camplugie.com</a></p>
   </section>
 
-  <footer>© 2026 Camplugie. All rights reserved.</footer>
+  <section>
+    <h2>About the company</h2>
+    <p>Camplugie is owned and operated by <b>Alphastack Digital Solutions Ltd</b>, a company founded on 27 June, with its office in Garki, Abuja, Nigeria.
+    Contact: <a href="mailto:info@camplugie.com">info@camplugie.com</a>.</p>
+  </section>
+
+  <footer>
+    <p style="font-size:12px;color:var(--text3)"><a href="terms.html">Terms of Service</a> · <a href="refund-policy.html">Payments, Escrow &amp; Refunds</a> · <a href="community-guidelines.html">Community Guidelines</a> · <a href="child-safety.html">Child Safety</a> · <a href="account-deletion.html">Delete Your Account</a></p>
+    © 2026 Alphastack Digital Solutions Ltd. All rights reserved. Camplugie is a product of Alphastack Digital Solutions Ltd.
+  </footer>
 </div>
-<button id="cpThemeToggle" aria-label="Toggle dark mode" style="position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 84px);right:14px;z-index:999;width:36px;height:36px;border-radius:50%;border:1px solid var(--border);background:var(--surface2);color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:var(--shadow);font-size:16px;line-height:1;">🌙</button>
-<script>(function(){
-  var btn = document.getElementById('cpThemeToggle');
-  if (!btn) return;
-  function isDark(){ return document.documentElement.getAttribute('data-theme') === 'dark'; }
-  function sync(){ btn.textContent = isDark() ? '☀️' : '🌙'; }
-  sync();
-  btn.addEventListener('click', function(){
-    var next = isDark() ? '' : 'dark';
-    if (next) { document.documentElement.setAttribute('data-theme','dark'); }
-    else { document.documentElement.removeAttribute('data-theme'); }
-    try { localStorage.setItem('cp-theme', next || 'light'); } catch(e){}
-    sync();
-  });
-})();</script>
 </body>
 </html>

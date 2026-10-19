@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Camplugie — Delete Your Account</title>
+<meta name="description" content="How to delete your Camplugie account and what happens to your data.">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="icon" href="/icons/icon-192.png" type="image/png">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Clash+Display:wght@600;700&family=Satoshi:wght@400;500;700;900&display=swap');
+:root {
+  --brand: #A78BFA; --brand-dark: #7C3AED; --brand-soft: rgba(167,139,250,0.14);
+  --bg: #090714;
+  --bg-gradient: radial-gradient(circle at 20% -10%, rgba(124,58,237,0.34), transparent 36%), linear-gradient(180deg, #0E0A1D 0%, #090714 100%);
+  --surface: #12101D; --surface2: #1A1729; --border: rgba(255,255,255,0.10);
+  --text: #F8F6FF; --text2: #C9C3DE; --text3: #8D86AA;
+  --radius: 18px; --radius-sm: 12px;
+  --safe-top: env(safe-area-inset-top, 0px); --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg-gradient), var(--bg);
+  color: var(--text);
+  font-family: 'Satoshi', -apple-system, BlinkMacSystemFont, sans-serif;
+  min-height: 100vh;
+}
+h1, h2, h3, .display { font-family: 'Clash Display', 'Satoshi', sans-serif; margin: 0; }
+a { color: var(--brand); text-decoration: none; }
+.wrap { max-width: 720px; margin: 0 auto; padding: calc(var(--safe-top) + 20px) 20px calc(var(--safe-bottom) + 40px); }
+.back { display: inline-flex; align-items: center; gap: 8px; color: var(--text3); font-size: 13.5px; font-weight: 600; margin-bottom: 18px; }
+.back svg { width: 16px; height: 16px; }
+h1 { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
+.updated { color: var(--text3); font-size: 12.5px; margin-bottom: 26px; }
+section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; margin-bottom: 14px; }
+h2 { font-size: 16px; font-weight: 700; color: var(--brand); margin-bottom: 10px; }
+h3 { font-size: 13.5px; font-weight: 700; margin: 14px 0 6px; color: var(--text); }
+p, li { font-size: 14px; line-height: 1.65; color: var(--text2); }
+ul { margin: 6px 0; padding-left: 20px; }
+li { margin-bottom: 4px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--border); color: var(--text2); vertical-align: top; }
+th { color: var(--text); font-weight: 700; }
+.badge { display: inline-block; background: var(--brand-soft); color: var(--brand); font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 999px; margin-bottom: 8px; }
+footer { text-align: center; color: var(--text3); font-size: 12px; margin-top: 24px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="javascript:history.back()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    Back
+  </a>
+  <h1>Delete Your Account</h1>
+  <div class="updated">Effective date: October 15, 2026 · Delete your Camplugie account and data.</div>
+
+  <section>
+    <h2>Delete your account in the app</h2>
+    <ul>
+      <li>Open Camplugie and sign in.</li>
+      <li>Go to <b>Settings → Account actions → Delete account</b>.</li>
+      <li>Type <b>DELETE</b> to confirm.</li>
+    </ul>    <p>Your account is deleted straight away.</p>
+  </section>
+
+  <section>
+    <h2>Can’t open the app? Request deletion by email</h2>
+    <ul>
+      <li>Email <a href="mailto:info@camplugie.com">info@camplugie.com</a> from the email address you signed up with.</li>
+      <li>Use the subject <b>“Delete my Camplugie account”</b> and include your username.</li>
+      <li>We may ask you to confirm it’s really you. We complete deletion requests within <b>30 days</b>.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>What is deleted</h2>
+    <ul>
+      <li>Your profile (name, username, photo, bio)</li>
+      <li>Your listings and posts</li>
+      <li>Messages you sent, and your group memberships</li>
+      <li>Your notification tokens and saved bank payout reference</li>
+      <li>Your blocks and notification settings</li>
+      <li>Your sign-in account — you will not be able to sign in again</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>What we keep, and why</h2>
+    <p>Completed order, receipt and wallet-transaction records are kept <b>without your name</b> for as long as Nigerian tax, accounting, anti-fraud and dispute rules require. Information we must keep by law, or need to handle an open dispute or investigation, may be kept until that is finished. Server logs are kept for a short period for security.</p>
+  </section>
+
+  <section>
+    <h2>Before you delete</h2>
+    <ul>
+      <li>Withdraw any money left in your <b>wallet</b> (or send it) — deletion is blocked while there is a balance.</li>
+      <li>Finish or cancel any <b>order in progress</b> — deletion is blocked while money is held in escrow.</li>
+      <li>Deletion is <b>permanent</b> and cannot be undone.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Want to keep your account but stop alerts?</h2>
+    <p>Go to <b>Settings → Notifications</b> and switch off what you don’t want, or switch off push notifications entirely.</p>
+  </section>
+
+  <section>
+    <h2>About the company</h2>
+    <p>Camplugie is owned and operated by <b>Alphastack Digital Solutions Ltd</b>, a company founded on 27 June, with its office in Garki, Abuja, Nigeria.
+    Contact: <a href="mailto:info@camplugie.com">info@camplugie.com</a>.</p>
+  </section>
+
+  <footer>
+    <p style="font-size:12px;color:var(--text3)"><a href="privacy-policy.html">Privacy Policy</a> · <a href="terms.html">Terms of Service</a> · <a href="refund-policy.html">Payments, Escrow &amp; Refunds</a> · <a href="community-guidelines.html">Community Guidelines</a> · <a href="child-safety.html">Child Safety</a></p>
+    © 2026 Alphastack Digital Solutions Ltd. All rights reserved. Camplugie is a product of Alphastack Digital Solutions Ltd.
+  </footer>
+</div>
+</body>
+</html>

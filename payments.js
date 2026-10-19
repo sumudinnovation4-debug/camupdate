@@ -9,8 +9,13 @@ window.CPPay = (function () {
   const API = ''; // same-origin Vercel functions, e.g. '' -> '/api/paystack/initialize'
 
   async function post(path, body) {
+    // Every money request proves who is asking with the signed-in user's token.
+    let token = null;
+    try { const { data } = await window.sb.auth.getSession(); token = data && data.session && data.session.access_token; } catch (_) {}
     const r = await fetch(`${API}/api/${path}`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: JSON.stringify(body),
     });
     let data;
     try {

@@ -1,0 +1,53 @@
+# Unpacks camplugie-update.zip for you, because the GitHub website cannot open zip files.
+# HOW: upload camplugie-update.zip to the MAIN folder of this repo (Add file → Upload files).
+# This workflow unzips everything into the right folders, removes any old files listed in the
+# zip's delete-files.txt (only plain files directly inside api/), deletes the zip, and commits.
+# (Vercel redeploys by itself afterwards.)
+name: Unpack update zip
+
+on:
+  push:
+    paths:
+      - 'camplugie-update.zip'
+
+permissions:
+  contents: write
+
+jobs:
+  unpack:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get the code
+        uses: actions/checkout@v4
+
+      - name: Unpack the zip
+        run: |
+          if [ ! -f camplugie-update.zip ]; then echo "No zip to unpack."; exit 0; fi
+          # .github/ is skipped on purpose: GitHub does not let automatic jobs change workflow files.
+          unzip -o camplugie-update.zip -x ".github/*" "__MACOSX/*" -d .
+          rm -f camplugie-update.zip
+
+      - name: Remove old files listed in delete-files.txt
+        run: |
+          if [ -f delete-files.txt ]; then
+            while IFS= read -r f; do
+              f=$(printf '%s' "$f" | tr -d '\r')
+              case "$f" in
+                api/*.js) ;;          # only plain .js files directly inside api/
+                *) continue ;;
+              esac
+              case "$f" in */*/*|*..*|api/_*|api/hub.js) continue ;; esac
+              if [ -f "$f" ]; then rm -f "$f" && echo "deleted $f"; fi
+            done < delete-files.txt
+            rm -f delete-files.txt
+          fi
+
+      - name: Save the changes
+        run: |
+          git config user.name "camplugie-update"
+          git config user.email "camplugie-update@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && { echo "Nothing changed."; exit 0; }
+          git status --short | head -60
+          git commit -m "Apply Camplugie update"
+          git push

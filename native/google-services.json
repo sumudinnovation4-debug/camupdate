@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "649861796546",
+    "project_id": "camplugie",
+    "storage_bucket": "camplugie.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:649861796546:android:d46b0dea64566ef331e15b",
+        "android_client_info": {
+          "package_name": "com.camplugie.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB-_6oO-xEIePgXx4ESgoLNoiJZBPEbHDM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

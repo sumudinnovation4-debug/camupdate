@@ -1,53 +1,148 @@
-# Unpacks camplugie-update.zip for you, because the GitHub website cannot open zip files.
-# HOW: upload camplugie-update.zip to the MAIN folder of this repo (Add file → Upload files).
-# This workflow unzips everything into the right folders, removes any old files listed in the
-# zip's delete-files.txt (only plain files directly inside api/), deletes the zip, and commits.
-# (Vercel redeploys by itself afterwards.)
-name: Unpack update zip
+# Builds the Camplugie Android app in the cloud — nothing to install or run on your phone.
+#
+# HOW TO USE (from the GitHub app or website):
+#   Repo → Actions → "Build Android app" → Run workflow.
+#   When it finishes (about 10–15 min) open  Releases → "Camplugie Android build"  and download:
+#       Camplugie-playstore.aab  → upload this to the Google Play Console
+#       Camplugie.apk            → the same app, to install directly on a phone
+#       Camplugie-test.apk       → quick test build
+#
+# ONE-TIME SETUP (Repo → Settings → Secrets and variables → Actions → New repository secret):
+#   ANDROID_KEYSTORE_PASSWORD = a long password you invent (20+ characters, letters+numbers).
+#   Write it down somewhere safe. The first run uses it to create your Play Store upload key
+#   (saved password-protected in native/upload-keystore.jks). Every later run reuses that key.
+name: Build Android app
 
 on:
-  push:
-    paths:
-      - 'camplugie-update.zip'
+  workflow_dispatch:
 
 permissions:
   contents: write
 
+concurrency:
+  group: android-build
+  cancel-in-progress: true
+
 jobs:
-  unpack:
+  build:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - name: Get the code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
-      - name: Unpack the zip
+      - name: Check the files are in place
         run: |
-          if [ ! -f camplugie-update.zip ]; then echo "No zip to unpack."; exit 0; fi
-          # .github/ is skipped on purpose: GitHub does not let automatic jobs change workflow files.
-          unzip -o camplugie-update.zip -x ".github/*" "__MACOSX/*" -d .
-          rm -f camplugie-update.zip
-
-      - name: Remove old files listed in delete-files.txt
-        run: |
-          if [ -f delete-files.txt ]; then
-            while IFS= read -r f; do
-              f=$(printf '%s' "$f" | tr -d '\r')
-              case "$f" in
-                api/*.js) ;;          # only plain .js files directly inside api/
-                *) continue ;;
-              esac
-              case "$f" in */*/*|*..*|api/_*|api/hub.js) continue ;; esac
-              if [ -f "$f" ]; then rm -f "$f" && echo "deleted $f"; fi
-            done < delete-files.txt
-            rm -f delete-files.txt
+          missing=0
+          for f in native/package.json native/capacitor.config.json native/build-android.js native/www/index.html native/www/offline.html icons/icon-512.png maskable-512.png monochrome-512.png; do
+            if [ ! -f "$f" ]; then echo "::error::MISSING FILE: $f  -> upload it to GitHub (see native/LAUNCH-GUIDE.md)"; missing=1; fi
+          done
+          if ! grep -q '"@capacitor/android"' native/package.json 2>/dev/null; then
+            echo "::error::native/package.json is the WRONG file. It must be the Android one that lists @capacitor/android (not the website's package.json)."; missing=1
           fi
+          if [ ! -f native/google-services.json ]; then
+            echo "::warning::native/google-services.json is missing - the app will build but notifications will NOT work until you add it."
+          fi
+          if [ "$missing" != "0" ]; then exit 1; fi
+          echo "All files found."
 
-      - name: Save the changes
+      - name: Set up Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Make sure Android SDK 36 is installed
         run: |
-          git config user.name "camplugie-update"
-          git config user.email "camplugie-update@users.noreply.github.com"
-          git add -A
-          git diff --cached --quiet && { echo "Nothing changed."; exit 0; }
-          git status --short | head -60
-          git commit -m "Apply Camplugie update"
+          SDK="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
+          yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null 2>&1 || true
+          "$SDK/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0" || echo "sdkmanager step skipped — Gradle will fetch what it needs"
+
+      - name: Install app tools
+        working-directory: native
+        run: npm install --no-audit --no-fund
+
+      - name: Create the Android project
+        working-directory: native
+        run: |
+          npx cap add android
+          node build-android.js
+          npx cap sync android
+
+      - name: Prepare signing key
+        id: key
+        env:
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -z "$KS_PASS" ]; then
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::ANDROID_KEYSTORE_PASSWORD secret is missing. Building test files only — add the secret and run again to get the Play Store file."
+            exit 0
+          fi
+          if [ ! -f native/upload-keystore.jks ]; then
+            keytool -genkeypair -storetype PKCS12 -keystore native/upload-keystore.jks \
+              -alias camplugie -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass "$KS_PASS" -keypass "$KS_PASS" \
+              -dname "CN=Camplugie, O=Alphastack Digital Solutions Ltd, L=Abuja, C=NG"
+            echo "created=true" >> "$GITHUB_OUTPUT"
+          fi
+          echo "signed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Save the new signing key (first run only)
+        if: steps.key.outputs.created == 'true'
+        run: |
+          git config user.name "camplugie-build"
+          git config user.email "camplugie-build@users.noreply.github.com"
+          git add -f native/upload-keystore.jks
+          git commit -m "Add Android upload key (password-protected)"
           git push
+
+      - name: Build the app
+        working-directory: native/android
+        env:
+          VERSION_CODE: ${{ github.run_number }}
+          VERSION_NAME: 1.0.${{ github.run_number }}
+          KEYSTORE_PATH: ${{ steps.key.outputs.signed == 'true' && format('{0}/native/upload-keystore.jks', github.workspace) || '' }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: camplugie
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug assembleRelease bundleRelease --no-daemon --stacktrace
+
+      - name: Collect the files
+        env:
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          mkdir out
+          OUT=native/android/app/build/outputs
+          cp "$OUT/apk/debug/app-debug.apk" out/Camplugie-test.apk
+          if [ "${{ steps.key.outputs.signed }}" = "true" ]; then
+            cp "$OUT/apk/release/app-release.apk" out/Camplugie.apk
+            cp "$OUT/bundle/release/app-release.aab" out/Camplugie-playstore.aab
+            FP=$(keytool -list -v -keystore native/upload-keystore.jks -alias camplugie -storepass "$KS_PASS" | grep "SHA256:" | head -1 | sed 's/.*SHA256: *//')
+            echo "$FP" > out/upload-key-SHA256.txt
+          fi
+          ls -lh out
+
+      - name: Publish downloads
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete android-latest --yes --cleanup-tag 2>/dev/null || true
+          gh release create android-latest out/* \
+            --title "Camplugie Android build ${{ github.run_number }}" \
+            --notes "Build ${{ github.run_number }}. Camplugie-playstore.aab → Google Play Console. Camplugie.apk → install on a phone." \
+            --latest=false
+          {
+            echo "## ✅ Camplugie Android build ${{ github.run_number }} is ready"
+            echo ""
+            echo "Download: https://github.com/${{ github.repository }}/releases/tag/android-latest"
+            if [ -f out/upload-key-SHA256.txt ]; then echo ""; echo "Upload key SHA-256 (needed for assetlinks.json): \`$(cat out/upload-key-SHA256.txt)\`"; fi
+            if [ "${{ steps.key.outputs.signed }}" != "true" ]; then echo ""; echo "⚠️ Add the ANDROID_KEYSTORE_PASSWORD secret and run again to get the Play Store file."; fi
+          } >> "$GITHUB_STEP_SUMMARY"

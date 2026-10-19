@@ -32,10 +32,14 @@ jobs:
       - name: Install dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Sync Capacitor
+      - name: Add and Sync Android
         run: |
+          if [ ! -d "android" ]; then
+            npx @capacitor/cli add android
+          else
+            echo "android folder exists"
+          fi
           npx @capacitor/cli sync android
-          # If above fails, try: ./node_modules/.bin/cap sync android
 
       - name: Build APK
         run: |

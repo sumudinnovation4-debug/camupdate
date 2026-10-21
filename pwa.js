@@ -323,7 +323,16 @@
    *  phone instead, so they arrive even when the app is closed. The native bridge is
    *  injected into the page as window.Capacitor; we talk to its plugins through that.
    * ===================================================================== */
-  function isNative() { return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()); }
+  function isNative() {
+    var c = window.Capacitor;
+    if (!c) return false;
+    try { if (c.isNativePlatform && c.isNativePlatform()) return true; } catch (e) {}
+    try { if (c.getPlatform && c.getPlatform() !== 'web') return true; } catch (e) {}
+    return typeof c.nativePromise === 'function';          // the injected bridge is present
+  }
+  // True when this page is open inside the Camplugie Android app (the app adds "CamplugieApp/" to its
+  // user-agent) — even if the native bridge failed to attach, so we can say so instead of guessing.
+  function inCamplugieApp() { return /CamplugieApp\//.test(navigator.userAgent || ''); }
   function nat(plugin, method, opts) {
     try { return window.Capacitor.nativePromise(plugin, method, opts || {}); }
     catch (e) { return Promise.reject(e); }
@@ -514,6 +523,12 @@
     function add(ok, name, detail) { lines.push({ ok: ok, name: name, detail: detail }); }
     if (isNative()) return diagnoseNative();
     return (async function () {
+      if (inCamplugieApp()) {
+        add(false, 'App connection', 'The Camplugie app is open, but its native link is NOT connected to this page, so notifications cannot be set up. ' +
+          'Page address: ' + location.origin + ' · Capacitor: ' + typeof window.Capacitor + ' · androidBridge: ' + typeof window.androidBridge + ' · app: ' + ((navigator.userAgent.match(/CamplugieApp\/[\d.]+/) || ['?'])[0]) +
+          '. Send this line to Claude.');
+        return lines;
+      }
       if (!pushSupported()) {
         add(false, 'This phone', 'This browser can’t receive push notifications. On iPhone, first add Camplugie to your Home Screen and open it from there.');
         return lines;

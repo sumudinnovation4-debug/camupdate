@@ -160,7 +160,9 @@ function patchManifest() {
 function patchGradle() {
   let g = read(APP_GRADLE);
   if (g.includes('KEYSTORE_PATH')) return;
-  g = replaceOnce(g, 'versionCode 1', 'versionCode (System.getenv("VERSION_CODE") ?: "1").toInteger()', 'versionCode');
+  // NOTE: `versionCode (x).toInteger()` is read by Gradle as versionCode(<String>) and fails.
+  // Integer.parseInt(...) keeps it a real number.
+  g = replaceOnce(g, 'versionCode 1', 'versionCode Integer.parseInt(System.getenv("VERSION_CODE") ?: "1")', 'versionCode');
   g = replaceOnce(g, 'versionName "1.0"', 'versionName (System.getenv("VERSION_NAME") ?: "1.0")', 'versionName');
   g = replaceOnce(g, '    buildTypes {',
 `    signingConfigs {

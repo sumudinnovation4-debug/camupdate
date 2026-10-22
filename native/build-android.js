@@ -128,6 +128,7 @@ function patchManifest() {
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="www.camplugie.com" />
                 <data android:scheme="https" android:host="camplugie.com" />
             </intent-filter>
 

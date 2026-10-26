@@ -27,6 +27,7 @@ module.exports = async (req, res) => {
       body: `Incoming ${video ? 'video' : 'voice'} call — tap to answer`,
       url: `/call.html?peer=${callerId}&name=${encodeURIComponent(name)}&role=callee&channel=${encodeURIComponent(call_channel)}&mode=${video ? 'video' : 'audio'}&auto=1`,
       type: 'call', tag: `call:${call_channel}`, eventAt: new Date().toISOString(),
+      data: { call_channel, caller_id: callerId, video: video ? '1' : '0' },
       ttl: 45,                         // rings for ~45 s, then it's a missed call — never deliver late
       requireInteraction: true,
       actions: [{ action: 'answer', title: 'Answer' }, { action: 'decline', title: 'Decline' }],

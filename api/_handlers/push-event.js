@@ -36,7 +36,7 @@ async function onMessage(sb, m) {
   return pushToUsers(sb, [to], {
     title: nameOf(sender), body: short(m.content) || mediaLabel(m.media_type),
     url: `/chat-thread.html?id=${m.conversation_id}`, type: 'message', tag: `chat:${m.conversation_id}`,
-    eventAt: m.created_at,
+    eventAt: m.created_at, data: { conv_id: m.conversation_id },
   });
 }
 
@@ -71,8 +71,8 @@ async function onGroupMessage(sb, m) {
     else if (!x.is_muted) normal.push(x.user_id);     // muted groups stay silent unless you're @mentioned
   }
   const [a, b] = await Promise.all([
-    pushToUsers(sb, normal, { title: groupName, body: `${senderName}: ${preview}`, url, type: 'group_message', tag: `group:${m.group_id}`, eventAt: m.created_at }),
-    pushToUsers(sb, mention, { title: `${senderName} mentioned you in ${groupName}`, body: preview, url, type: 'mention', tag: `group:${m.group_id}`, eventAt: m.created_at }),
+    pushToUsers(sb, normal, { title: groupName, body: `${senderName}: ${preview}`, url, type: 'group_message', tag: `group:${m.group_id}`, eventAt: m.created_at, data: { group_id: m.group_id } }),
+    pushToUsers(sb, mention, { title: `${senderName} mentioned you in ${groupName}`, body: preview, url, type: 'mention', tag: `group:${m.group_id}`, eventAt: m.created_at, data: { group_id: m.group_id } }),
   ]);
   return { normal: a, mention: b };
 }
@@ -91,7 +91,7 @@ async function onGroupCall(sb, c) {
     title: `${lecture ? '🎓' : '📞'} ${(group && group.name) || 'Group'}`,
     body: `${nameOf(host)} started ${lecture ? 'a lecture' : 'a group call'} — tap to join`,
     url: `/group-call.html?groupId=${c.group_id}&callId=${c.id}&mode=${c.mode}&role=guest`,
-    type: 'group_call', tag: `call:${c.id}`, eventAt: c.created_at,
+    type: 'group_call', tag: `call:${c.id}`, eventAt: c.created_at, data: { group_id: c.group_id, call_id: c.id },
     ttl: 120,                       // a call that rang 10 minutes ago is useless — don't deliver it late
     requireInteraction: true,
     actions: [{ action: 'open', title: lecture ? 'Join lecture' : 'Join call' }],

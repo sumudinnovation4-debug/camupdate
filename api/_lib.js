@@ -196,7 +196,7 @@ async function pushToUsers(sb, userIds, msg, opts = {}) {
         catch (err) { out.failed += nativeJobs.length; noteError(null, 'Firebase sign-in failed: ' + err.message); console.error('FCM auth failed:', err.message); return; }
         await runPool(nativeJobs, async (t) => {
           try {
-            const r = await fcm.sendOne(t.token, msg, bearer);
+            const r = await fcm.sendOne(t.token, msg, bearer, { dataOnly: process.env.FCM_BUTTONS !== 'off' && !!(t.actions && fcm.wantsData(msg.type)) });
             if (r.ok) { out.sent++; out.native++; }
             else { out.failed++; if (r.dead) deadTokens.push(t.token); else console.error('FCM delivery failed:', r.status, r.error); noteError(r.status, r.error); }
           } catch (err) { out.failed++; noteError(null, err.message); }

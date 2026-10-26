@@ -4,7 +4,7 @@
 // counted). vercel.json rewrites each public address to this file, so the addresses the app
 // and the database use do not change:
 //   /api/push-event  /api/push-test  /api/notify-call  /api/notify-message
-//   /api/notify-group-message  /api/send-push  /api/delete-account
+//   /api/notify-group-message  /api/send-push  /api/delete-account  /api/quick-reply  /api/call-decline
 const ROUTES = {
   'push-event':           () => require('./_handlers/push-event.js'),
   'push-test':            () => require('./_handlers/push-test.js'),
@@ -13,6 +13,8 @@ const ROUTES = {
   'notify-group-message': () => require('./_handlers/notify-group-message.js'),
   'send-push':            () => require('./_handlers/send-push.js'),
   'delete-account':       () => require('./_handlers/delete-account.js'),
+  'quick-reply':          () => require('./_handlers/quick-reply.js'),
+  'call-decline':         () => require('./_handlers/call-decline.js'),
 };
 
 module.exports = async (req, res) => {

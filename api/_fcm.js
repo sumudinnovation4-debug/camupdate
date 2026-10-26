@@ -44,17 +44,33 @@ const CHANNEL = {
 };
 const channelFor = (type) => CHANNEL[type] || 'updates';
 
+// Chats and calls are sent as plain data to phones running the app version with notification
+// buttons (Reply / Answer / Decline), so the app can build the notification itself. Everyone else
+// still gets the ordinary notification the phone shows on its own.
+const ACTIONABLE = new Set(['message', 'group_message', 'mention', 'call', 'group_call']);
+const wantsData = (type) => ACTIONABLE.has(type);
+
 // FCM "data" values must all be strings.
 const strs = (o) => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined && v !== null).map(([k, v]) => [k, String(v)]));
 
-function buildMessage(token, msg) {
+function buildMessage(token, msg, opts = {}) {
   const isCall = msg.type === 'call' || msg.type === 'group_call';
   const ttl = Math.max(30, msg.ttl || 86400);
+  const common = { url: msg.url || '/notifications.html', type: msg.type || 'general', tag: msg.tag || '', ts: Date.now(), ev: msg.eventAt ? new Date(msg.eventAt).getTime() : '' };
+  if (opts.dataOnly) {
+    return {
+      message: {
+        token,
+        data: strs({ cp: '1', title: String(msg.title || 'Camplugie').slice(0, 100), body: String(msg.body || '').slice(0, 180), ...common, ...(msg.data || {}) }),
+        android: { priority: 'HIGH', ttl: `${ttl}s`, ...(msg.tag ? { collapse_key: String(msg.tag).slice(0, 60) } : {}) },
+      },
+    };
+  }
   return {
     message: {
       token,
       notification: { title: String(msg.title || 'Camplugie').slice(0, 100), body: String(msg.body || '').slice(0, 180) },
-      data: strs({ url: msg.url || '/notifications.html', type: msg.type || 'general', tag: msg.tag || '', ts: Date.now(), ev: msg.eventAt ? new Date(msg.eventAt).getTime() : '' }),
+      data: strs({ ...common, ...(msg.data || {}) }),
       android: {
         priority: (msg.urgency || 'high') === 'high' ? 'HIGH' : 'NORMAL',
         ttl: `${ttl}s`,
@@ -75,12 +91,12 @@ function buildMessage(token, msg) {
 }
 
 // Sends one message to one phone. Returns { ok, dead, status, error }.
-async function sendOne(token, msg, bearer) {
+async function sendOne(token, msg, bearer, opts = {}) {
   const a = account();
   const res = await fetch(`https://fcm.googleapis.com/v1/projects/${a.project_id}/messages:send`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${bearer}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(buildMessage(token, msg)),
+    body: JSON.stringify(buildMessage(token, msg, opts)),
   });
   if (res.ok) return { ok: true };
   let body = {};
@@ -92,4 +108,4 @@ async function sendOne(token, msg, bearer) {
   return { ok: false, dead, status: res.status, error: String((body.error && body.error.message) || errorCode || res.status).slice(0, 160) };
 }
 
-module.exports = { ready, status, accessToken, buildMessage, sendOne, channelFor };
+module.exports = { ready, status, accessToken, buildMessage, sendOne, channelFor, wantsData };

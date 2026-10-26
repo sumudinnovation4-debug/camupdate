@@ -128,6 +128,14 @@
     {
       "source": "/api/delete-account",
       "destination": "/api/hub?r=delete-account"
+    },
+    {
+      "source": "/api/quick-reply",
+      "destination": "/api/hub?r=quick-reply"
+    },
+    {
+      "source": "/api/call-decline",
+      "destination": "/api/hub?r=call-decline"
     }
   ],
   "functions": {

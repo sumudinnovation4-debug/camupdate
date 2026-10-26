@@ -347,10 +347,43 @@
     { id: 'updates',  name: 'Listings, posts & orders', description: 'New listings, posts and order updates', importance: 3, visibility: 1, vibration: true }
   ];
 
+  // Notification buttons (Reply / Answer / Decline) need a secret that lives on THIS phone. The app keeps
+  // the secret; the server only gets its SHA-256 hash, so it can recognise the phone but never read the secret.
+  function randomHex(bytes) {
+    var a = new Uint8Array(bytes); (window.crypto || window.msCrypto).getRandomValues(a);
+    return Array.prototype.map.call(a, function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
+  }
+  function sha256Hex(text) {
+    return crypto.subtle.digest('SHA-256', new TextEncoder().encode(text)).then(function (buf) {
+      return Array.prototype.map.call(new Uint8Array(buf), function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
+    });
+  }
+  function replySecret() {
+    var t = null;
+    try { t = localStorage.getItem('cp_reply_token'); } catch (e) {}
+    if (!t || t.length < 32) { t = randomHex(32); try { localStorage.setItem('cp_reply_token', t); } catch (e) {} }
+    return t;
+  }
+  // Resolves to the extra columns to save, or null if this build of the app has no notification buttons
+  // (then the phone simply keeps getting ordinary notifications — nothing breaks).
+  function setupNativeButtons() {
+    var secret = replySecret();
+    return nat('CamplugieNative', 'setReplyToken', { token: secret, api: location.origin })
+      .then(function () { return sha256Hex(secret); })
+      .then(function (hash) { return { reply_token_hash: hash, actions: true, app_version: '2' }; })
+      .catch(function () { return null; });
+  }
   function saveNativeToken(token, userId) {
     if (!token || !userId || !window.sb) return Promise.resolve(false);
-    var row = { user_id: userId, token: token, platform: 'android' };
-    return Promise.resolve(window.sb.from('device_tokens').upsert(row, { onConflict: 'token' })).then(function (r) {
+    function save(row) { return Promise.resolve(window.sb.from('device_tokens').upsert(row, { onConflict: 'token' })); }
+    var base = { user_id: userId, token: token, platform: 'android' };
+    return setupNativeButtons().then(function (extra) {
+      return save(extra ? Object.assign({}, base, extra) : base).then(function (r) {
+        // Database not updated for the buttons yet? Save the plain token instead of failing.
+        if (r && r.error && /reply_token_hash|actions|app_version/i.test(r.error.message || '')) return save(base);
+        return r;
+      });
+    }).then(function (r) {
       if (r && r.error) { console.warn('[native] saving device token failed', r.error); return false; }
       return true;
     });
@@ -366,8 +399,9 @@
         var page = (m && m[1] || 'onboarding').replace(/\/+$/, '') || 'onboarding';
         if (!/\.html$/.test(page)) page += '.html';
         location.href = '/' + page + ((m && m[2]) || '');
-      } else if (/^https:\/\/(www\.)?camplugie\.com/i.test(url)) {   // a camplugie.com link opened in the app
-        var u = new URL(url); location.href = u.pathname + u.search + u.hash;
+      } else if (/^https:\/\/(www\.)?camplugie\.com/i.test(url)) {   // a camplugie.com link / a tapped notification
+        var u = new URL(url), target = u.pathname + u.search + u.hash;
+        if (target !== location.pathname + location.search + location.hash) location.href = target;
       }
     } catch (e) { console.warn('[native] app url', e); }
   }
@@ -400,10 +434,16 @@
         var here = new URL(d.url || '/', location.origin);
         if (here.pathname === location.pathname && here.searchParams.get('id') === new URLSearchParams(location.search).get('id')) return;
       } catch (_) {}
-      var text = (n.title ? n.title + ': ' : '') + (n.body || '');
+      var title = n.title || d.title || '', body = n.body || d.body || '';
+      var text = (title ? title + ': ' : '') + body;
       toast(text.slice(0, 110), d.url ? 'Open' : null, d.url ? function () { location.href = d.url; } : null, 6000);
     });
     natOn('App', 'appUrlOpen', function (e) { handleAppUrl(e && e.url); });
+    // The app was started FROM a notification (it wasn't running): open what it was about, once.
+    if (!sess('cp_launch_handled')) {
+      sess('cp_launch_handled', '1');
+      nat('App', 'getLaunchUrl').then(function (r) { if (r && r.url) handleAppUrl(r.url); }, function () {});
+    }
   }
 
   function nativeChannels() {
@@ -434,6 +474,8 @@
   }
   function nativeUnregister() {
     var tok = nativeToken;
+    nat('CamplugieNative', 'clearReplyToken').catch(function () {});     // this phone can no longer send replies
+    try { localStorage.removeItem('cp_reply_token'); } catch (e) {}
     return Promise.resolve(tok && window.sb ? window.sb.from('device_tokens').delete().eq('token', tok) : null).then(function () { return true; }, function () { return true; });
   }
   // Remembers which of mic / camera / location were granted inside the app (WebViews can't be asked).
@@ -830,6 +872,104 @@
     });
   }
 
+  /* =====================================================================
+   *  OFFLINE MODE (WhatsApp-style). The service worker saves what you view; this part makes the
+   *  rest of the app behave: it stays signed in with no signal, shows a small "offline" badge,
+   *  and wipes everything saved when you sign out.
+   * ===================================================================== */
+
+  // The sign-in Supabase keeps on the phone. With no signal its token can't be refreshed, which would
+  // make every page think you are signed out and bounce you to the login screen. Offline, we hand
+  // pages the saved sign-in instead (it is the same person, on the same phone).
+  function storedSession() {
+    try {
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (/^sb-.+-auth-token$/.test(k)) {
+          var j = JSON.parse(localStorage.getItem(k));
+          if (j && j.access_token && j.user) return j;
+        }
+      }
+    } catch (e) {}
+    return null;
+  }
+  function clearOffline() {
+    try { if (navigator.serviceWorker && navigator.serviceWorker.controller) navigator.serviceWorker.controller.postMessage('CP_CLEAR_OFFLINE'); } catch (e) {}
+    return Promise.resolve();
+  }
+  // Runs just BEFORE a sign-out: stop alerts for this account on this phone, forget saved offline data.
+  function beforeSignOut() {
+    var done = Promise.all([unsubscribePush().catch(function () {}), clearOffline()]);
+    var cap = new Promise(function (r) { setTimeout(r, 2500); });                 // never let this hold up signing out
+    return Promise.race([done, cap]).then(function () {}, function () {});
+  }
+  function wrapSupabase(lib) {
+    if (!lib || lib.__cpWrapped || typeof lib.createClient !== 'function') return lib;
+    var orig = lib.createClient;
+    lib.__cpWrapped = true;
+    lib.createClient = function () {
+      var client = orig.apply(this, arguments);
+      try {
+        var auth = client.auth, getSession = auth.getSession.bind(auth), signOut = auth.signOut.bind(auth);
+        auth.getSession = function () {
+          return getSession().then(function (r) {
+            if (r && r.data && r.data.session) return r;
+            var offline = !navigator.onLine || (r && r.error && /fetch|network|timeout|load failed/i.test(String(r.error.message || r.error)));
+            var saved = offline ? storedSession() : null;
+            return saved ? { data: { session: saved }, error: null } : r;
+          }, function (e) {
+            var saved = !navigator.onLine ? storedSession() : null;
+            if (saved) return { data: { session: saved }, error: null };
+            throw e;
+          });
+        };
+        auth.signOut = function () {
+          var args = arguments;
+          return beforeSignOut().then(function () { return signOut.apply(null, args); });
+        };
+      } catch (e) { console.warn('[pwa] offline sign-in helper not attached', e); }
+      return client;
+    };
+    return lib;
+  }
+  // Pages load the Supabase library AFTER this file, so wait for it to appear.
+  if (window.supabase) wrapSupabase(window.supabase);
+  else {
+    var _supabaseLib;
+    try {
+      Object.defineProperty(window, 'supabase', {
+        configurable: true,
+        get: function () { return _supabaseLib; },
+        set: function (v) { _supabaseLib = wrapSupabase(v); }
+      });
+    } catch (e) {}
+  }
+
+  // The little "offline" badge (top, centred) + "Back online — Refresh".
+  addStyle('cp-offline-css', [
+    '#cp-offline{position:fixed;top:calc(env(safe-area-inset-top,0px) + 6px);left:50%;transform:translate(-50%,-140%);z-index:2147483200;',
+    'background:rgba(30,22,58,.96);color:#E9E4FF;border:1px solid rgba(255,255,255,.14);border-radius:999px;padding:6px 13px;',
+    'font:700 12px system-ui,-apple-system,sans-serif;display:flex;align-items:center;gap:7px;pointer-events:none;',
+    'box-shadow:0 6px 20px rgba(0,0,0,.4);transition:transform .3s cubic-bezier(.2,.8,.2,1);white-space:nowrap}',
+    '#cp-offline.on{transform:translate(-50%,0)}',
+    '#cp-offline i{width:8px;height:8px;border-radius:50%;background:#FBBF24;display:inline-block}'
+  ].join(''));
+  var offlineEl = null, wasOffline = false;
+  function setOffline(on) {
+    if (on) {
+      if (!offlineEl) { offlineEl = doc.createElement('div'); offlineEl.id = 'cp-offline'; offlineEl.innerHTML = '<i></i>Offline · showing saved content'; (doc.body || root).appendChild(offlineEl); }
+      requestAnimationFrame(function () { offlineEl && offlineEl.classList.add('on'); });
+      wasOffline = true;
+    } else {
+      if (offlineEl) offlineEl.classList.remove('on');
+      if (wasOffline) { wasOffline = false; toast('Back online', 'Refresh', function () { location.reload(); }, 6000); }
+    }
+  }
+  window.addEventListener('offline', function () { setOffline(true); });
+  window.addEventListener('online', function () { setOffline(false); });
+  if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', function () { if (!navigator.onLine) setOffline(true); });
+  else if (!navigator.onLine) setOffline(true);
+
   window.CamplugiePWA = {
     apkUrl: APK_URL,
     install: install,
@@ -848,6 +988,7 @@
       publicKey: VAPID_PUBLIC_KEY,
       unsubscribe: unsubscribePush
     },
-    permissions: { open: function () { openPermSheet(window.CP_USER); } }
+    permissions: { open: function () { openPermSheet(window.CP_USER); } },
+    beforeSignOut: beforeSignOut
   };
 })();
